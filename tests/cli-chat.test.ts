@@ -1,0 +1,72 @@
+import { describe, expect, it, vi } from 'vitest'
+import Chat from '../src/cli/commands/chat.js'
+
+const replOut: string[] = []
+
+vi.mock('../src/engine/repl.js', () => ({
+  createRepl: (_prompt: string, handlers: any) => ({
+    start: async () => {
+      await handlers.onLine('/help')
+      await handlers.onLine('/mode nope')
+      await handlers.onLine('/mode plan')
+      await handlers.onLine('/provider anthropic')
+      await handlers.onLine('/model m1')
+      await handlers.onLine('/cd /tmp')
+      await handlers.onLine('/ls .')
+      await handlers.onLine('/cat a.txt')
+      await handlers.onLine('/search hello .')
+      await handlers.onLine('/search ')
+      await handlers.onLine('/diff')
+      await handlers.onLine('/apply 1')
+      await handlers.onLine('/apply x')
+      await handlers.onLine('/discard 1')
+      await handlers.onLine('/discard x')
+      await handlers.onLine('/run node --version')
+      await handlers.onLine('/run ')
+      await handlers.onLine('/nope')
+      await handlers.onLine('hello')
+      await handlers.onLine('/exit')
+      await handlers.onExit()
+    },
+    print: (s: string) => replOut.push(s),
+    close: () => undefined
+  })
+}))
+
+vi.mock('../src/engine/chat-session.js', () => ({
+  createChatSession: vi.fn(async () => {
+    let mode = 'build'
+    return {
+    handleUserMessage: vi.fn(async () => 'ok'),
+    handleUserMessageStream: vi.fn(async (_t: string, onText: (d: string) => void) => {
+      onText('ok')
+      return 'ok'
+    }),
+    runTool: vi.fn(async (name: string) => {
+      if (name === 'list_files') return 'a.txt'
+      if (name === 'read_file') return 'x'
+      if (name === 'search_files') return 'a.txt:1:hello'
+      if (name === 'show_writes') return ''
+      if (name === 'apply_writes') return 'Nothing to apply'
+      if (name === 'discard_writes') return 'Nothing to discard'
+      if (name === 'run_command') return ''
+      return ''
+    }),
+    configure: vi.fn(async (next: any) => {
+      if (next?.mode) mode = next.mode
+    }),
+    getConfig: vi.fn(() => ({ provider: 'anthropic', model: 'm1', root: '/tmp', mode }))
+    }
+  })
+}))
+
+describe('CLI chat', () => {
+  it('prints help and exits', async () => {
+    replOut.splice(0, replOut.length)
+    const cmd = new Chat([], {} as any)
+    ;(cmd as any).parse = vi.fn(async () => ({ flags: { provider: 'openai', model: undefined, autoApprove: false, root: undefined, profile: undefined } }))
+    ;(cmd as any).log = vi.fn()
+    await cmd.run()
+    expect(replOut.join('\n')).toContain('/help')
+  })
+})

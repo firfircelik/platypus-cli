@@ -1,0 +1,114 @@
+{
+  "name": "platypus-cli",
+  "version": "1.0.0",
+  "description": "Multi-agent orchestration CLI for autonomous software development teams",
+  "main": "dist/index.js",
+  "bin": {
+    "platypus": "bin/platypus.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc && npm run manifest",
+    "dev": "tsc --watch",
+    "manifest": "node scripts/generate-oclif-manifest.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts",
+    "prepare": "husky install",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run test"
+  },
+  "keywords": [
+    "cli",
+    "platypus",
+    "ai",
+    "coding",
+    "assistant",
+    "multi-agent",
+    "orchestration",
+    "development",
+    "automation",
+    "llm",
+    "agents",
+    "devtools"
+  ],
+  "author": "Fırat <https://github.com/firfircelik>",
+  "license": "MIT",
+  "homepage": "https://github.com/firfircelik/platypus-cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/firfircelik/platypus-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/firfircelik/platypus-cli/issues"
+  },
+  "dependencies": {
+    "@oclif/core": "^4.0.29",
+    "@oclif/plugin-help": "^6.2.15",
+    "better-sqlite3": "^11.7.0",
+    "inquirer": "^12.3.0",
+    "ioredis": "^5.4.2",
+    "keytar": "^7.9.0",
+    "uuid": "^11.0.3",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.10.5",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "oclif": {
+    "bin": "platypus",
+    "dirname": "platypus",
+    "commands": "./dist/cli/commands",
+    "plugins": [
+      "@oclif/plugin-help"
+    ],
+    "topicSeparator": " ",
+    "topics": {
+      "agent": {
+        "description": "Manage AI agents"
+      },
+      "conflict": {
+        "description": "Manage file conflicts"
+      },
+      "keys": {
+        "description": "Manage API keys"
+      },
+      "screen": {
+        "description": "Manage screen sessions"
+      },
+      "run": {
+        "description": "Execute tasks"
+      }
+    }
+  },
+  "files": [
+    "bin",
+    "dist",
+    "install.sh",
+    "oclif.manifest.json"
+  ]
+}

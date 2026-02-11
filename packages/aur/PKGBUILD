@@ -1,0 +1,58 @@
+# Maintainer: Platypus Team <dev@platypus.dev>
+# Contributor: Platypus Team
+
+pkgname=platypus-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Multi-agent orchestration CLI for autonomous software development teams"
+arch=("x86_64" "aarch64" "armv7h")
+url="https://github.com/anomalyco/platypus-cli"
+license=("MIT")
+depends=("nodejs>=20.0.0")
+makedepends=("npm")
+provides=("platypus")
+conflicts=("platypus" "platypus-git")
+source=(
+  "$pkgname-$pkgver.tgz::https://github.com/anomalyco/platypus-cli/archive/refs/tags/v${pkgver}.tar.gz"
+)
+sha256sums=(
+  "REPLACE_WITH_ACTUAL_HASH"
+)
+
+package() {
+  # Install npm package globally
+  npm install -g --prefix="$pkgdir/usr" "$srcdir/$pkgname-$pkgver.tgz"
+
+  # Remove references to $srcdir and $pkgdir
+  find "$pkgdir" -type f -name package.json -exec sed -i "s|$srcdir||g" {} \;
+  find "$pkgdir" -type f -name package.json -exec sed -i "s|$pkgdir||g" {} \;
+
+  # Install license
+  install -Dm644 "$srcdir/platypus-cli-$pkgver/LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+  # Install documentation
+  install -Dm644 "$srcdir/platypus-cli-$pkgver/README.md" \
+    "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
+
+post_install() {
+  echo "╔══════════════════════════════════════════╗"
+  echo "║  🐥 Platypus CLI Installed                 ║"
+  echo "╚══════════════════════════════════════════╝"
+  echo ""
+  echo "Quick start:"
+  echo "  platypus"
+  echo ""
+  echo "Add API keys:"
+  echo "  platypus keys add openai"
+  echo "  platypus keys add anthropic"
+  echo "  platypus keys add google"
+  echo ""
+  echo "Documentation:"
+  echo "  https://github.com/anomalyco/platypus-cli#readme"
+}
+
+post_upgrade() {
+  post_install
+}

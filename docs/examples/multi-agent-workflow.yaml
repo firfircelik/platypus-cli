@@ -1,0 +1,30 @@
+project:
+  name: sample-app
+  root: .
+
+team:
+  agents:
+    - name: sample-frontend
+      role: frontend-dev
+      capabilities: [ui, css, react]
+      layout: collaborative
+    - name: sample-backend
+      role: backend-dev
+      capabilities: [api, db]
+      layout: collaborative
+    - name: sample-devops
+      role: devops
+      capabilities: [docker, ci]
+      layout: collaborative
+    - name: sample-qa
+      role: qa
+      capabilities: [tests]
+      layout: collaborative
+    - name: sample-pm
+      role: pm
+      capabilities: [planning]
+      layout: collaborative
+
+workflow:
+  - task: "Add login UI and API endpoints, then write tests"
+    routing: auto

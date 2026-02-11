@@ -1,0 +1,1017 @@
+{
+  "commands": {
+    "chat": {
+      "aliases": [],
+      "args": {},
+      "description": "Interactive chat mode (Claude Code-style)",
+      "flags": {
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "default": "openai",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "model": {
+          "char": "m",
+          "description": "Model name (provider-specific)",
+          "name": "model",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "autoApprove": {
+          "description": "Auto-approve tool actions",
+          "name": "autoApprove",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "root": {
+          "description": "Project root path (defaults to cwd)",
+          "name": "root",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "profile": {
+          "description": "Profile name (e.g. plan, build)",
+          "name": "profile",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "chat",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "chat.js"
+      ]
+    },
+    "doctor": {
+      "aliases": [],
+      "args": {},
+      "description": "Check local environment and dependencies",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "doctor",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "doctor.js"
+      ]
+    },
+    "run": {
+      "aliases": [],
+      "args": {
+        "task": {
+          "description": "Task description",
+          "name": "task",
+          "required": true
+        }
+      },
+      "description": "Execute a natural-language task using the agent team",
+      "flags": {
+        "ensureTeam": {
+          "description": "Ensure at least 5 agents exist",
+          "name": "ensureTeam",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "wait": {
+          "description": "Wait for completion (seconds)",
+          "name": "wait",
+          "default": 0,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "follow": {
+          "description": "Stream task results while waiting",
+          "name": "follow",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "run",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "run.js"
+      ]
+    },
+    "stats": {
+      "aliases": [],
+      "args": {},
+      "description": "Show basic performance and resource statistics",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "stats",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "stats.js"
+      ]
+    },
+    "upgrade": {
+      "aliases": [],
+      "args": {},
+      "description": "Self-update the installed Platypus package under PLATYPUS_HOME",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "upgrade",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "upgrade.js"
+      ]
+    },
+    "agent:create": {
+      "aliases": [],
+      "args": {},
+      "description": "Create a new agent with an isolated tmux session",
+      "flags": {
+        "name": {
+          "char": "n",
+          "description": "Agent name",
+          "name": "name",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "role": {
+          "char": "r",
+          "description": "Agent role",
+          "name": "role",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "capabilities": {
+          "char": "c",
+          "description": "Capability identifiers",
+          "name": "capabilities",
+          "default": [],
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        },
+        "layout": {
+          "description": "Screen layout",
+          "name": "layout",
+          "default": "dev",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "agent:create",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "agent",
+        "create.js"
+      ]
+    },
+    "agent:destroy": {
+      "aliases": [],
+      "args": {},
+      "description": "Destroy an agent and kill its tmux session",
+      "flags": {
+        "id": {
+          "char": "i",
+          "description": "Agent id",
+          "name": "id",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "agent:destroy",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "agent",
+        "destroy.js"
+      ]
+    },
+    "agent:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List persisted agents",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "agent:list",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "agent",
+        "list.js"
+      ]
+    },
+    "agent:spawn-team": {
+      "aliases": [],
+      "args": {},
+      "description": "Spawn a standard 5-agent team (frontend, backend, devops, qa, pm)",
+      "flags": {
+        "prefix": {
+          "description": "Name prefix for agents",
+          "name": "prefix",
+          "default": "team",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "layout": {
+          "description": "Screen layout",
+          "name": "layout",
+          "default": "collaborative",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "mode": {
+          "description": "Agent mode (plan|build)",
+          "name": "mode",
+          "default": "build",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "profile": {
+          "description": "Profile name (e.g. plan, build)",
+          "name": "profile",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "agent:spawn-team",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "agent",
+        "spawn-team.js"
+      ]
+    },
+    "agent:start": {
+      "aliases": [],
+      "args": {},
+      "description": "Mark an agent as running and optionally attach to its session",
+      "flags": {
+        "id": {
+          "char": "i",
+          "description": "Agent id",
+          "name": "id",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "attach": {
+          "description": "Attach to tmux session after starting",
+          "name": "attach",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "agent:start",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "agent",
+        "start.js"
+      ]
+    },
+    "agent:stop": {
+      "aliases": [],
+      "args": {},
+      "description": "Mark an agent as stopped",
+      "flags": {
+        "id": {
+          "char": "i",
+          "description": "Agent id",
+          "name": "id",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "agent:stop",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "agent",
+        "stop.js"
+      ]
+    },
+    "conflict:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List detected file conflicts",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "conflict:list",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "conflict",
+        "list.js"
+      ]
+    },
+    "conflict:resolve": {
+      "aliases": [],
+      "args": {},
+      "description": "Mark a conflict as resolved",
+      "flags": {
+        "id": {
+          "char": "i",
+          "description": "Conflict id",
+          "name": "id",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "by": {
+          "char": "b",
+          "description": "Resolver agent id",
+          "name": "by",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "type": {
+          "char": "t",
+          "description": "Resolution type (merge|override|rename|manual)",
+          "name": "type",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "conflict:resolve",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "conflict",
+        "resolve.js"
+      ]
+    },
+    "keys:add": {
+      "aliases": [],
+      "args": {},
+      "description": "Add an encrypted API key for a provider",
+      "flags": {
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "key": {
+          "char": "k",
+          "description": "API key (omit to prompt securely)",
+          "name": "key",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "validate": {
+          "description": "Validate key with provider API when supported",
+          "name": "validate",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "keys:add",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "keys",
+        "add.js"
+      ]
+    },
+    "keys:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List stored API keys (without revealing secret values)",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "keys:list",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "keys",
+        "list.js"
+      ]
+    },
+    "keys:remove": {
+      "aliases": [],
+      "args": {},
+      "description": "Remove a stored API key for a provider",
+      "flags": {
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "keys:remove",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "keys",
+        "remove.js"
+      ]
+    },
+    "keys:validate": {
+      "aliases": [],
+      "args": {},
+      "description": "Validate a stored key against provider API when supported",
+      "flags": {
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "keys:validate",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "keys",
+        "validate.js"
+      ]
+    },
+    "screen:attach": {
+      "aliases": [],
+      "args": {},
+      "description": "Attach to a tmux session by name or agent id",
+      "flags": {
+        "session": {
+          "char": "s",
+          "description": "tmux session name",
+          "name": "session",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "agent": {
+          "char": "a",
+          "description": "agent id",
+          "name": "agent",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "screen:attach",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "screen",
+        "attach.js"
+      ]
+    },
+    "screen:layout": {
+      "aliases": [],
+      "args": {},
+      "description": "Change layout for a tmux session",
+      "flags": {
+        "session": {
+          "char": "s",
+          "description": "tmux session name",
+          "name": "session",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "layout": {
+          "char": "l",
+          "description": "Layout name (dev, review, monitor, collaborative)",
+          "name": "layout",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "screen:layout",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "screen",
+        "layout.js"
+      ]
+    },
+    "screen:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List tmux sessions",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "screen:list",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "screen",
+        "list.js"
+      ]
+    },
+    "screen:split": {
+      "aliases": [],
+      "args": {},
+      "description": "Split a tmux session into panes",
+      "flags": {
+        "session": {
+          "char": "s",
+          "description": "tmux session name",
+          "name": "session",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "direction": {
+          "char": "d",
+          "description": "vertical|horizontal",
+          "name": "direction",
+          "default": "vertical",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "screen:split",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "screen",
+        "split.js"
+      ]
+    },
+    "workflow:bmad-help": {
+      "aliases": [],
+      "args": {},
+      "description": "Suggest the next recommended workflow step (BMAD-style)",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "workflow:bmad-help",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "workflow",
+        "bmad-help.js"
+      ]
+    },
+    "workflow:code-review": {
+      "aliases": [],
+      "args": {
+        "focus": {
+          "description": "Optional focus area (e.g. security, tests)",
+          "name": "focus",
+          "required": false
+        }
+      },
+      "description": "Review current changes and suggest fixes (BMAD-style)",
+      "flags": {
+        "runId": {
+          "description": "Existing workflow run id",
+          "name": "runId",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "default": "openai",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "model": {
+          "char": "m",
+          "description": "Model name (provider-specific)",
+          "name": "model",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "root": {
+          "description": "Project root path (defaults to cwd)",
+          "name": "root",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "profile": {
+          "description": "Profile name (e.g. plan, build)",
+          "name": "profile",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "workflow:code-review",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "workflow",
+        "code-review.js"
+      ]
+    },
+    "workflow:dev-story": {
+      "aliases": [],
+      "args": {
+        "story": {
+          "description": "Story text or story id",
+          "name": "story",
+          "required": true
+        }
+      },
+      "description": "Implement a single story (BMAD-style)",
+      "flags": {
+        "runId": {
+          "description": "Existing workflow run id",
+          "name": "runId",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "default": "openai",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "model": {
+          "char": "m",
+          "description": "Model name (provider-specific)",
+          "name": "model",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "root": {
+          "description": "Project root path (defaults to cwd)",
+          "name": "root",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "autoApprove": {
+          "description": "Auto-approve tool actions",
+          "name": "autoApprove",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "profile": {
+          "description": "Profile name (e.g. plan, build)",
+          "name": "profile",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "workflow:dev-story",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "workflow",
+        "dev-story.js"
+      ]
+    },
+    "workflow:quick-spec": {
+      "aliases": [],
+      "args": {},
+      "description": "Generate a BMAD-style quick spec for the current project",
+      "flags": {
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "default": "openai",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "model": {
+          "char": "m",
+          "description": "Model name (provider-specific)",
+          "name": "model",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "root": {
+          "description": "Project root path (defaults to cwd)",
+          "name": "root",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "profile": {
+          "description": "Profile name (e.g. plan, build)",
+          "name": "profile",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "workflow:quick-spec",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "workflow",
+        "quick-spec.js"
+      ]
+    },
+    "workflow:run": {
+      "aliases": [],
+      "args": {
+        "file": {
+          "description": "Path to workflow yaml",
+          "name": "file",
+          "required": true
+        }
+      },
+      "description": "Run a workflow YAML (team + tasks)",
+      "flags": {
+        "wait": {
+          "description": "Wait for completion (seconds)",
+          "name": "wait",
+          "default": 0,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "follow": {
+          "description": "Stream task results while waiting",
+          "name": "follow",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "profile": {
+          "description": "Profile name for spawned agents",
+          "name": "profile",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "workflow:run",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "workflow",
+        "run.js"
+      ]
+    }
+  },
+  "version": "1.0.0"
+}

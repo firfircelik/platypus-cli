@@ -1,0 +1,15 @@
+{
+  "schema": "https://aka.ms/winget-manifest.version.1.5.0.schema.json",
+  "homepage": "https://github.com/anomalyco/platypus-cli",
+  "description": "Multi-agent orchestration CLI for autonomous software development teams",
+  "license": "MIT",
+  "version": "1.0.0",
+  "url": "https://github.com/anomalyco/platypus-cli/releases/download/v1.0.0/platypus-cli-1.0.0.tgz",
+  "hash": "REPLACE_WITH_ACTUAL_HASH",
+  "installer": {
+    "script": "tools/chocolatey/install.ps1"
+  },
+  "uninstaller": {
+    "script": "tools/chocolatey/uninstall.ps1"
+  }
+}
