@@ -1,6 +1,6 @@
 {
   "name": "platypus-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Multi-agent orchestration CLI for autonomous software development teams",
   "main": "dist/index.js",
   "bin": {
