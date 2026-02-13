@@ -15,6 +15,8 @@ permissions:
 
 env:
   NODE_VERSION: 20
+  # Shared apt packages needed for native modules (keytar → libsecret, better-sqlite3 → build-essential)
+  APT_PACKAGES: libsecret-1-dev build-essential python3
 
 jobs:
   # ──────────────────────────────────────────────
@@ -32,18 +34,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      # keytar needs libsecret, better-sqlite3 needs build-essential
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsecret-1-dev build-essential python3
+          sudo apt-get install -y ${{ env.APT_PACKAGES }}
 
       - name: Install npm dependencies
-        run: npm ci --ignore-scripts=false
+        run: npm ci
         env:
           HUSKY: 0
 
-      # Cache the entire node_modules (including native builds)
       - name: Cache node_modules
         uses: actions/cache/save@v4
         with:
@@ -51,7 +51,7 @@ jobs:
           key: nm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
 
   # ──────────────────────────────────────────────
-  # Lint
+  # Lint (no native deps needed at runtime)
   # ──────────────────────────────────────────────
   lint:
     name: Lint
@@ -76,7 +76,7 @@ jobs:
         run: npm run lint
 
   # ──────────────────────────────────────────────
-  # TypeScript type-check (catches errors tsc finds)
+  # TypeScript type-check (no native deps needed)
   # ──────────────────────────────────────────────
   typecheck:
     name: Type Check
@@ -102,6 +102,7 @@ jobs:
 
   # ──────────────────────────────────────────────
   # Tests (matrix: Node 20 + 22)
+  # keytar loads at runtime → needs libsecret .so
   # ──────────────────────────────────────────────
   test:
     name: Test (Node ${{ matrix.node-version }})
@@ -119,12 +120,12 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      # Runtime .so files needed for keytar + better-sqlite3
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsecret-1-dev build-essential python3
+          sudo apt-get install -y ${{ env.APT_PACKAGES }}
 
-      # For non-primary Node versions, install fresh (native modules may differ)
       - name: Restore node_modules (Node ${{ env.NODE_VERSION }})
         if: matrix.node-version == env.NODE_VERSION
         uses: actions/cache/restore@v4
@@ -143,7 +144,7 @@ jobs:
         run: npm test
 
   # ──────────────────────────────────────────────
-  # Build (depends on lint + typecheck + test)
+  # Build + verify CLI (needs libsecret at runtime)
   # ──────────────────────────────────────────────
   build:
     name: Build
@@ -157,6 +158,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # keytar is loaded when oclif discovers commands → needs .so at runtime
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ env.APT_PACKAGES }}
+
       - name: Restore node_modules
         uses: actions/cache/restore@v4
         with:
@@ -167,16 +174,16 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Verify CLI entry point
+      - name: Verify CLI loads
         run: node bin/platypus.js --help
 
-      - name: Verify dist output
+      - name: Verify build artifacts
         run: |
           test -f dist/cli/commands/chat.js || (echo "❌ dist/cli/commands/chat.js missing" && exit 1)
           test -f oclif.manifest.json || (echo "❌ oclif.manifest.json missing" && exit 1)
           echo "✅ Build artifacts verified"
 
-      - name: Upload build artifacts
+      - name: Upload artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -187,7 +194,7 @@ jobs:
           retention-days: 3
 
   # ──────────────────────────────────────────────
-  # Dependency audit (non-blocking, informational)
+  # Dependency audit (non-blocking)
   # ──────────────────────────────────────────────
   audit:
     name: Security Audit
