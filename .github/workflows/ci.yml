@@ -6,46 +6,208 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
+env:
+  NODE_VERSION: 20
+
 jobs:
+  # ──────────────────────────────────────────────
+  # Install & cache dependencies (shared by all)
+  # ──────────────────────────────────────────────
+  install:
+    name: Install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # keytar needs libsecret, better-sqlite3 needs build-essential
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev build-essential python3
+
+      - name: Install npm dependencies
+        run: npm ci --ignore-scripts=false
+        env:
+          HUSKY: 0
+
+      # Cache the entire node_modules (including native builds)
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+
+  # ──────────────────────────────────────────────
+  # Lint
+  # ──────────────────────────────────────────────
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
+          node-version: ${{ env.NODE_VERSION }}
 
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+          fail-on-cache-miss: true
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # ──────────────────────────────────────────────
+  # TypeScript type-check (catches errors tsc finds)
+  # ──────────────────────────────────────────────
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+          fail-on-cache-miss: true
+
+      - name: TypeScript compile check
+        run: npx tsc --noEmit
+
+  # ──────────────────────────────────────────────
+  # Tests (matrix: Node 20 + 22)
+  # ──────────────────────────────────────────────
   test:
     name: Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         node-version: [20, 22]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
-      - run: npm test
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev build-essential python3
+
+      # For non-primary Node versions, install fresh (native modules may differ)
+      - name: Restore node_modules (Node ${{ env.NODE_VERSION }})
+        if: matrix.node-version == env.NODE_VERSION
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+          fail-on-cache-miss: true
+
+      - name: Install dependencies (Node ${{ matrix.node-version }})
+        if: matrix.node-version != env.NODE_VERSION
+        run: npm ci
+        env:
+          HUSKY: 0
+
+      - name: Run tests
+        run: npm test
+
+  # ──────────────────────────────────────────────
+  # Build (depends on lint + typecheck + test)
+  # ──────────────────────────────────────────────
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, typecheck, test]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+          fail-on-cache-miss: true
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify CLI entry point
+        run: node bin/platypus.js --help
+
+      - name: Verify dist output
+        run: |
+          test -f dist/cli/commands/chat.js || (echo "❌ dist/cli/commands/chat.js missing" && exit 1)
+          test -f oclif.manifest.json || (echo "❌ oclif.manifest.json missing" && exit 1)
+          echo "✅ Build artifacts verified"
+
+      - name: Upload build artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            dist/
+            oclif.manifest.json
+          retention-days: 3
+
+  # ──────────────────────────────────────────────
+  # Dependency audit (non-blocking, informational)
+  # ──────────────────────────────────────────────
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+          fail-on-cache-miss: true
+
+      - name: npm audit (production)
+        run: npm audit --omit=dev --audit-level=high || true

@@ -14,9 +14,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts",
-    "prepare": "husky install",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "node -e \"try{require('husky').install()}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\" || true",
     "prepack": "npm run build",
     "prepublishOnly": "npm run test"
   },
