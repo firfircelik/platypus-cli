@@ -51,6 +51,7 @@
     "inquirer": "^12.3.0",
     "ioredis": "^5.4.2",
     "keytar": "^7.9.0",
+    "platypus-cli": "^1.1.0",
     "uuid": "^11.0.3",
     "yaml": "^2.7.0"
   },

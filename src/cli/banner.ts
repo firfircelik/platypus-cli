@@ -1,8 +1,7 @@
 /**
- * Platypus ASCII Art Banner
+ * Platypus CLI Banner
  *
- * Renders a duck-billed platypus (Ornithorhynchus anatinus) in ASCII art
- * with optional colors and formatting.
+ * Renders "PLATYPUS" in bold ASCII block letters with version info.
  */
 
 import { createRequire } from "node:module";
@@ -12,14 +11,12 @@ import { dirname, resolve } from "node:path";
 
 function getVersion(): string {
   try {
-    // Try import.meta based resolution first (ESM)
     const __dirname = dirname(fileURLToPath(import.meta.url));
     const pkgPath = resolve(__dirname, "..", "..", "package.json");
     const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
     return pkg.version ?? "0.0.0";
   } catch {
     try {
-      // Fallback: use createRequire
       const require = createRequire(import.meta.url);
       const pkg = require("../../package.json");
       return pkg.version ?? "0.0.0";
@@ -30,19 +27,12 @@ function getVersion(): string {
 }
 
 export const PLATYPUS_ASCII_ART = `
-        ___,,___
-     ,-='    '=-.
-   ,'   _  _    '.
-  /    (o)(o)     \\
- ;     _       _   ;
- |    (_)--.--(_)  |
- ;     '.    .'    ;
-  \\      '--'     /
-   '.           .'
-     '-._____.-'
-   ~~/         \\~~
-  ~~(           )~~
-    ~~\\_______/~~
+ ████████╗ ██╗      █████╗ ████████╗██╗   ██╗██████╗ ██╗   ██╗███████╗
+ ██╔═══██║ ██║     ██╔══██╗╚══██╔══╝╚██╗ ██╔╝██╔══██╗██║   ██║██╔════╝
+ ████████║ ██║     ███████║   ██║    ╚████╔╝ ██████╔╝██║   ██║███████╗
+ ██╔═════╝ ██║     ██╔══██║   ██║     ╚██╔╝  ██╔═══╝ ██║   ██║╚════██║
+ ██║       ███████╗██║  ██║   ██║      ██║   ██║     ╚██████╔╝███████║
+ ╚═╝       ╚══════╝╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚═╝      ╚═════╝ ╚══════╝
 `;
 
 export function shouldShowPlatypusBanner(): boolean {
@@ -60,37 +50,25 @@ export function renderPlatypusBanner(input?: { color?: boolean }): string {
   const c = (s: string, open: string, close = "\x1b[0m") =>
     color ? `${open}${s}${close}` : s;
   const bold = (s: string) => c(s, "\x1b[1m");
-  const yellow = (s: string) => c(s, "\x1b[33m");
   const cyan = (s: string) => c(s, "\x1b[36m");
   const dim = (s: string) => c(s, "\x1b[2m");
 
-  // Render the platypus ASCII art in yellow/bold
-  const platypus = yellow(
+  const logo = cyan(
     bold(
       [
-        "        ___,,___",
-        "     ,-='    '=-.",
-        "   ,'   _  _    '.",
-        "  /    (o)(o)     \\",
-        " ;     _       _   ;",
-        " |    (_)--.--(_)  |",
-        " ;     '.    .'    ;",
-        "  \\      '--'     /",
-        "   '.           .'",
-        "     '-._____.-'",
-        "   ~~/         \\~~",
-        "  ~~(           )~~",
-        "    ~~\\_______/~~",
+        " ████████╗ ██╗      █████╗ ████████╗██╗   ██╗██████╗ ██╗   ██╗███████╗",
+        " ██╔═══██║ ██║     ██╔══██╗╚══██╔══╝╚██╗ ██╔╝██╔══██╗██║   ██║██╔════╝",
+        " ████████║ ██║     ███████║   ██║    ╚████╔╝ ██████╔╝██║   ██║███████╗",
+        " ██╔═════╝ ██║     ██╔══██║   ██║     ╚██╔╝  ██╔═══╝ ██║   ██║╚════██║",
+        " ██║       ███████╗██║  ██║   ██║      ██║   ██║     ╚██████╔╝███████║",
+        " ╚═╝       ╚══════╝╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚═╝      ╚═════╝ ╚══════╝",
       ].join("\n"),
     ),
   );
 
   const version = getVersion();
-
-  // Title below the art
-  const title = cyan("Platypus CLI");
   const ver = dim(`v${version}`);
-  const hint = dim("Tip: Add API keys with `platypus keys add <provider>`");
+  const hint = dim("Tip: Add API keys with `platypus keys add openai`");
 
-  return [platypus, "", title, ver, hint, ""].join("\n");
+  return [logo, "", ver, hint, ""].join("\n");
 }

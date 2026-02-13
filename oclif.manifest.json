@@ -485,14 +485,20 @@
     },
     "keys:add": {
       "aliases": [],
-      "args": {},
+      "args": {
+        "provider": {
+          "description": "Provider id (e.g. openai, anthropic, google)",
+          "name": "provider",
+          "required": false
+        }
+      },
       "description": "Add an encrypted API key for a provider",
       "flags": {
         "provider": {
           "char": "p",
           "description": "Provider id (e.g. openai)",
           "name": "provider",
-          "required": true,
+          "required": false,
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"
@@ -552,14 +558,20 @@
     },
     "keys:remove": {
       "aliases": [],
-      "args": {},
+      "args": {
+        "provider": {
+          "description": "Provider id (e.g. openai, anthropic, google)",
+          "name": "provider",
+          "required": false
+        }
+      },
       "description": "Remove a stored API key for a provider",
       "flags": {
         "provider": {
           "char": "p",
           "description": "Provider id (e.g. openai)",
           "name": "provider",
-          "required": true,
+          "required": false,
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"

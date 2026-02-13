@@ -81,9 +81,9 @@ export default class Chat extends BaseCommand {
       this.log("");
       this.log("To start chatting with AI, add an API key:");
       this.log("");
-      this.log("  platypus keys add -p openai     # OpenAI (GPT-4, GPT-3.5)");
-      this.log("  platypus keys add -p anthropic  # Anthropic (Claude)");
-      this.log("  platypus keys add -p google     # Google (Gemini)");
+      this.log("  platypus keys add openai     # OpenAI (GPT-4, GPT-3.5)");
+      this.log("  platypus keys add anthropic  # Anthropic (Claude)");
+      this.log("  platypus keys add google     # Google (Gemini)");
       this.log("");
       this.log("You can still use local commands without an API key:");
       this.log("  /ls [dir]        - List files");
@@ -148,7 +148,7 @@ export default class Chat extends BaseCommand {
       if (!inputText.trim().length) this.error("Input is required");
       if (!session)
         this.error(
-          "No AI provider configured. Add a key: platypus keys add -p <provider>",
+          "No AI provider configured. Add a key: platypus keys add <provider>",
         );
       const output = await session.handleUserMessage(inputText);
       if (flags.json) {
@@ -200,7 +200,7 @@ export default class Chat extends BaseCommand {
             helpLines.push(
               "",
               "To enable AI chat, add an API key:",
-              "  platypus keys add -p <provider>",
+              "  platypus keys add <provider>",
             );
           }
 
@@ -210,7 +210,7 @@ export default class Chat extends BaseCommand {
         if (line.startsWith("/mode ")) {
           if (!session) {
             repl.print(
-              "No AI provider configured. Add a key: platypus keys add -p <provider>",
+              "No AI provider configured. Add a key: platypus keys add <provider>",
             );
             return;
           }
@@ -250,7 +250,7 @@ export default class Chat extends BaseCommand {
           const providerKeys = keys.filter((k) => k.provider === p && k.valid);
           if (providerKeys.length === 0) {
             repl.print(`No valid key found for provider: ${p}`);
-            repl.print(`Add a key with: platypus keys add -p ${p}`);
+            repl.print(`Add a key with: platypus keys add ${p}`);
             return;
           }
 
@@ -281,7 +281,7 @@ export default class Chat extends BaseCommand {
         if (line.startsWith("/model ")) {
           if (!session) {
             repl.print(
-              "No AI provider configured. Add a key: platypus keys add -p <provider>",
+              "No AI provider configured. Add a key: platypus keys add <provider>",
             );
             return;
           }
@@ -413,9 +413,9 @@ export default class Chat extends BaseCommand {
             "No AI provider configured. To chat with AI, add an API key:",
           );
           repl.print("");
-          repl.print("  platypus keys add -p openai");
-          repl.print("  platypus keys add -p anthropic");
-          repl.print("  platypus keys add -p google");
+          repl.print("  platypus keys add openai");
+          repl.print("  platypus keys add anthropic");
+          repl.print("  platypus keys add google");
           repl.print("");
           repl.print("Or use /help to see available local commands.");
           return;

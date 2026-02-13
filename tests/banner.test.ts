@@ -13,11 +13,10 @@ describe("banner", () => {
     else process.env.PLATYPUS_BANNER = prev;
   });
 
-  it("renders wide and compact variants", () => {
+  it("renders PLATYPUS ASCII text banner", () => {
     const out = renderPlatypusBanner({ color: false });
-    expect(out).toContain("Platypus CLI");
-    expect(out).toContain("___,,___");
-    expect(out).toContain("(o)(o)");
+    expect(out).toContain("████");
     expect(out).toContain("v1.1.0");
+    expect(out).toContain("keys add");
   });
 });

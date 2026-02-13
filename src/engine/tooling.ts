@@ -1,486 +1,705 @@
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import os from 'node:os'
-import { spawnSync } from 'node:child_process'
-import inquirer from 'inquirer'
-import type { Workspace } from '../core/workspace.js'
-import type { ToolCall, ToolDefinition, ToolRegistry } from '../llm/types.js'
-import { McpManager, type McpServerConfig } from './mcp.js'
-import { LspManager, type LspConfig } from './lsp.js'
+import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+import { spawnSync } from "node:child_process";
+import inquirer from "inquirer";
+import type { Workspace } from "../core/workspace.js";
+import type { ToolCall, ToolDefinition, ToolRegistry } from "../llm/types.js";
+import { McpManager, type McpServerConfig } from "./mcp.js";
+import { LspManager, type LspConfig } from "./lsp.js";
 
 export type ToolApprovalPrompt = {
-  autoApprove: boolean
-  confirmRun(command: string): Promise<boolean>
-  confirmWrite(relPath: string, diffText: string): Promise<boolean>
-}
+  autoApprove: boolean;
+  confirmRun(command: string): Promise<boolean>;
+  confirmWrite(relPath: string, diffText: string): Promise<boolean>;
+};
 
-export function createDefaultApprovalPrompt(input: { autoApprove: boolean }): ToolApprovalPrompt {
+export function createDefaultApprovalPrompt(input: {
+  autoApprove: boolean;
+}): ToolApprovalPrompt {
   if (input.autoApprove) {
     return {
       autoApprove: true,
       async confirmRun(): Promise<boolean> {
-        return true
+        return true;
       },
       async confirmWrite(): Promise<boolean> {
-        return true
-      }
-    }
+        return true;
+      },
+    };
   }
 
   return {
     autoApprove: false,
     async confirmRun(command: string): Promise<boolean> {
       const { ok } = await inquirer.prompt<{ ok: boolean }>([
-        { type: 'confirm', name: 'ok', message: `Run command? ${command}`, default: false }
-      ])
-      return ok
+        {
+          type: "confirm",
+          name: "ok",
+          message: `Run command? ${command}`,
+          default: false,
+        },
+      ]);
+      return ok;
     },
     async confirmWrite(relPath: string, diffText: string): Promise<boolean> {
-      const preview = diffText.trim().length > 0 ? `\n${diffText}\n` : '\n(no diff)\n'
-      process.stdout.write(preview)
+      const preview =
+        diffText.trim().length > 0 ? `\n${diffText}\n` : "\n(no diff)\n";
+      process.stdout.write(preview);
       const { ok } = await inquirer.prompt<{ ok: boolean }>([
-        { type: 'confirm', name: 'ok', message: `Apply write to ${relPath}?`, default: false }
-      ])
-      return ok
-    }
-  }
+        {
+          type: "confirm",
+          name: "ok",
+          message: `Apply write to ${relPath}?`,
+          default: false,
+        },
+      ]);
+      return ok;
+    },
+  };
 }
 
 export function createToolRegistry(input: {
-  workspace: Workspace
-  approval: ToolApprovalPrompt
-  agentId: string
-  allowedToolNames?: string[]
-  mcpServers?: McpServerConfig[]
-  lsp?: LspConfig | null
+  workspace: Workspace;
+  approval: ToolApprovalPrompt;
+  agentId: string;
+  allowedToolNames?: string[];
+  mcpServers?: McpServerConfig[];
+  lsp?: LspConfig | null;
 }): ToolRegistry {
-  const pendingWrites: { path: string; content: string; diff: string }[] = []
-  const allowed = input.allowedToolNames ? new Set(input.allowedToolNames) : null
-  const mcp = input.mcpServers && input.mcpServers.length > 0 ? new McpManager(input.mcpServers) : null
-  const lsp = input.lsp ? new LspManager(input.lsp) : null
+  const pendingWrites: { path: string; content: string; diff: string }[] = [];
+  const allowed = input.allowedToolNames
+    ? new Set(input.allowedToolNames)
+    : null;
+  const mcp =
+    input.mcpServers && input.mcpServers.length > 0
+      ? new McpManager(input.mcpServers)
+      : null;
+  const lsp = input.lsp ? new LspManager(input.lsp) : null;
 
-  const tools: Record<string, { def: ToolDefinition; run: (args: any) => Promise<string> }> = {
+  const tools: Record<
+    string,
+    { def: ToolDefinition; run: (args: any) => Promise<string> }
+  > = {
     read_file: {
       def: {
-        name: 'read_file',
-        description: 'Read a UTF-8 text file from the project workspace',
+        name: "read_file",
+        description: "Read a UTF-8 text file from the project workspace",
         parameters: {
-          type: 'object',
-          properties: { path: { type: 'string' } },
-          required: ['path'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: { path: { type: "string" } },
+          required: ["path"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        const relPath = String(args?.path ?? '')
-        if (!relPath) return 'Error: path is required'
-        const content = await input.workspace.readFile(relPath)
-        return content
-      }
+        const relPath = String(args?.path ?? "");
+        if (!relPath) return "Error: path is required";
+        const content = await input.workspace.readFile(relPath);
+        return content;
+      },
     },
     write_file: {
       def: {
-        name: 'write_file',
-        description: 'Stage a UTF-8 text file write to the project workspace (requires apply_writes to commit)',
+        name: "write_file",
+        description:
+          "Stage a UTF-8 text file write to the project workspace (requires apply_writes to commit)",
         parameters: {
-          type: 'object',
-          properties: { path: { type: 'string' }, content: { type: 'string' } },
-          required: ['path', 'content'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: { path: { type: "string" }, content: { type: "string" } },
+          required: ["path", "content"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        const relPath = String(args?.path ?? '')
-        const content = String(args?.content ?? '')
-        if (!relPath) return 'Error: path is required'
-        const full = input.workspace.resolve(relPath)
-        await fs.mkdir(path.dirname(full), { recursive: true })
-        const before = await fs.readFile(full, 'utf8').catch(() => '')
-        const diff = await computeUnifiedDiff(relPath, before, content)
+        const relPath = String(args?.path ?? "");
+        const content = String(args?.content ?? "");
+        if (!relPath) return "Error: path is required";
+        const full = input.workspace.resolve(relPath);
+        await fs.mkdir(path.dirname(full), { recursive: true });
+        const before = await fs.readFile(full, "utf8").catch(() => "");
+        const diff = await computeUnifiedDiff(relPath, before, content);
         if (input.approval.autoApprove) {
-          await input.workspace.writeFile(input.agentId, relPath, content)
-          return diff.trim().length > 0 ? diff : 'OK'
+          await input.workspace.writeFile(input.agentId, relPath, content);
+          return diff.trim().length > 0 ? diff : "OK";
         }
-        const existing = pendingWrites.findIndex(w => w.path === relPath)
-        if (existing >= 0) pendingWrites.splice(existing, 1)
-        pendingWrites.push({ path: relPath, content, diff })
-        return diff.trim().length > 0 ? diff : 'Staged'
-      }
+        const existing = pendingWrites.findIndex((w) => w.path === relPath);
+        if (existing >= 0) pendingWrites.splice(existing, 1);
+        pendingWrites.push({ path: relPath, content, diff });
+        return diff.trim().length > 0 ? diff : "Staged";
+      },
     },
     show_writes: {
       def: {
-        name: 'show_writes',
-        description: 'Show currently staged file writes (optionally summary-only)',
+        name: "show_writes",
+        description:
+          "Show currently staged file writes (optionally summary-only)",
         parameters: {
-          type: 'object',
-          properties: { summaryOnly: { type: 'boolean' } },
+          type: "object",
+          properties: { summaryOnly: { type: "boolean" } },
           required: [],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        if (pendingWrites.length === 0) return ''
-        const summaryOnly = Boolean(args?.summaryOnly)
-        const header = ['Staged writes:', ...pendingWrites.map((w, i) => `[${i + 1}] ${w.path}`)].join('\n')
-        if (summaryOnly) return header
-        return [header, '', ...pendingWrites.map(w => w.diff)].join('\n\n')
-      }
+        if (pendingWrites.length === 0) return "";
+        const summaryOnly = Boolean(args?.summaryOnly);
+        const header = [
+          "Staged writes:",
+          ...pendingWrites.map((w, i) => `[${i + 1}] ${w.path}`),
+        ].join("\n");
+        if (summaryOnly) return header;
+        return [header, "", ...pendingWrites.map((w) => w.diff)].join("\n\n");
+      },
     },
     apply_writes: {
       def: {
-        name: 'apply_writes',
-        description: 'Apply staged writes to disk with user approval (optionally select by id)',
+        name: "apply_writes",
+        description:
+          "Apply staged writes to disk with user approval (optionally select by id)",
         parameters: {
-          type: 'object',
-          properties: { ids: { type: 'array', items: { type: 'number' } } },
+          type: "object",
+          properties: { ids: { type: "array", items: { type: "number" } } },
           required: [],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        if (pendingWrites.length === 0) return 'Nothing to apply'
-        const ids = Array.isArray(args?.ids) ? args.ids.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n)) : null
-        const selected = ids && ids.length > 0 ? new Set(ids.map((n: number) => Math.trunc(n)).filter((n: number) => n >= 1)) : null
-        let applied = 0
-        const remaining: typeof pendingWrites = []
+        if (pendingWrites.length === 0) return "Nothing to apply";
+        const ids = Array.isArray(args?.ids)
+          ? args.ids
+              .map((n: any) => Number(n))
+              .filter((n: number) => Number.isFinite(n))
+          : null;
+        const selected =
+          ids && ids.length > 0
+            ? new Set(
+                ids
+                  .map((n: number) => Math.trunc(n))
+                  .filter((n: number) => n >= 1),
+              )
+            : null;
+        let applied = 0;
+        const remaining: typeof pendingWrites = [];
         for (let i = 0; i < pendingWrites.length; i++) {
-          const w = pendingWrites[i]
+          const w = pendingWrites[i];
           if (selected && !selected.has(i + 1)) {
-            remaining.push(w)
-            continue
+            remaining.push(w);
+            continue;
           }
-          const ok = await input.approval.confirmWrite(w.path, w.diff)
+          const ok = await input.approval.confirmWrite(w.path, w.diff);
           if (!ok) {
-            remaining.push(w)
-            continue
+            remaining.push(w);
+            continue;
           }
-          await input.workspace.writeFile(input.agentId, w.path, w.content)
-          applied += 1
+          await input.workspace.writeFile(input.agentId, w.path, w.content);
+          applied += 1;
         }
-        pendingWrites.splice(0, pendingWrites.length, ...remaining)
-        return applied > 0 ? `Applied ${applied} write(s)` : 'No writes applied'
-      }
+        pendingWrites.splice(0, pendingWrites.length, ...remaining);
+        return applied > 0
+          ? `Applied ${applied} write(s)`
+          : "No writes applied";
+      },
     },
     discard_writes: {
       def: {
-        name: 'discard_writes',
-        description: 'Discard staged writes (optionally select by id)',
+        name: "discard_writes",
+        description: "Discard staged writes (optionally select by id)",
         parameters: {
-          type: 'object',
-          properties: { ids: { type: 'array', items: { type: 'number' } } },
+          type: "object",
+          properties: { ids: { type: "array", items: { type: "number" } } },
           required: [],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        if (pendingWrites.length === 0) return 'Nothing to discard'
-        const ids = Array.isArray(args?.ids) ? args.ids.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n)) : null
-        const selected = ids && ids.length > 0 ? new Set(ids.map((n: number) => Math.trunc(n)).filter((n: number) => n >= 1)) : null
-        const kept: typeof pendingWrites = []
-        let discarded = 0
+        if (pendingWrites.length === 0) return "Nothing to discard";
+        const ids = Array.isArray(args?.ids)
+          ? args.ids
+              .map((n: any) => Number(n))
+              .filter((n: number) => Number.isFinite(n))
+          : null;
+        const selected =
+          ids && ids.length > 0
+            ? new Set(
+                ids
+                  .map((n: number) => Math.trunc(n))
+                  .filter((n: number) => n >= 1),
+              )
+            : null;
+        const kept: typeof pendingWrites = [];
+        let discarded = 0;
         for (let i = 0; i < pendingWrites.length; i++) {
-          const w = pendingWrites[i]
+          const w = pendingWrites[i];
           if (selected && !selected.has(i + 1)) {
-            kept.push(w)
-            continue
+            kept.push(w);
+            continue;
           }
-          discarded += 1
+          discarded += 1;
         }
-        pendingWrites.splice(0, pendingWrites.length, ...kept)
-        return discarded > 0 ? `Discarded ${discarded} write(s)` : 'No writes discarded'
-      }
+        pendingWrites.splice(0, pendingWrites.length, ...kept);
+        return discarded > 0
+          ? `Discarded ${discarded} write(s)`
+          : "No writes discarded";
+      },
     },
     read_json: {
       def: {
-        name: 'read_json',
-        description: 'Read a JSON file and return its parsed value as JSON',
+        name: "read_json",
+        description: "Read a JSON file and return its parsed value as JSON",
         parameters: {
-          type: 'object',
-          properties: { path: { type: 'string' } },
-          required: ['path'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: { path: { type: "string" } },
+          required: ["path"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        const relPath = String(args?.path ?? '')
-        if (!relPath) return 'Error: path is required'
-        const content = await input.workspace.readFile(relPath)
-        const parsed = JSON.parse(content)
-        return JSON.stringify(parsed, null, 2)
-      }
+        const relPath = String(args?.path ?? "");
+        if (!relPath) return "Error: path is required";
+        const content = await input.workspace.readFile(relPath);
+        const parsed = JSON.parse(content);
+        return JSON.stringify(parsed, null, 2);
+      },
     },
     write_json: {
       def: {
-        name: 'write_json',
-        description: 'Stage a JSON file write (pretty-printed). Apply with apply_writes',
+        name: "write_json",
+        description:
+          "Stage a JSON file write (pretty-printed). Apply with apply_writes",
         parameters: {
-          type: 'object',
-          properties: { path: { type: 'string' }, value: {} },
-          required: ['path', 'value'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: { path: { type: "string" }, value: {} },
+          required: ["path", "value"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        const relPath = String(args?.path ?? '')
-        if (!relPath) return 'Error: path is required'
-        const content = JSON.stringify(args?.value, null, 2) + '\n'
-        return tools.write_file.run({ path: relPath, content })
-      }
+        const relPath = String(args?.path ?? "");
+        if (!relPath) return "Error: path is required";
+        const content = JSON.stringify(args?.value, null, 2) + "\n";
+        return tools.write_file.run({ path: relPath, content });
+      },
     },
     search_files: {
       def: {
-        name: 'search_files',
-        description: 'Search for a text pattern in files under a directory',
+        name: "search_files",
+        description: "Search for a text pattern in files under a directory",
         parameters: {
-          type: 'object',
-          properties: { query: { type: 'string' }, dir: { type: 'string' }, maxResults: { type: 'number' } },
-          required: ['query'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: {
+            query: { type: "string" },
+            dir: { type: "string" },
+            maxResults: { type: "number" },
+          },
+          required: ["query"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        const query = String(args?.query ?? '')
-        const dir = String(args?.dir ?? '.')
-        const maxResults = Number.isFinite(args?.maxResults) ? Math.max(1, Math.min(200, Number(args.maxResults))) : 50
-        if (!query) return 'Error: query is required'
-        const cwd = input.workspace.resolve('.')
-        const res = spawnSync('rg', ['-n', '--no-heading', '--color', 'never', '--max-count', String(maxResults), query, dir], {
-          cwd,
-          encoding: 'utf8'
-        })
-        const out = `${res.stdout ?? ''}${res.stderr ?? ''}`.trim()
-        if (res.status === 0) return out
-        if (res.status !== null) return out.length > 0 ? out : ''
+        const query = String(args?.query ?? "");
+        const dir = String(args?.dir ?? ".");
+        const maxResults = Number.isFinite(args?.maxResults)
+          ? Math.max(1, Math.min(200, Number(args.maxResults)))
+          : 50;
+        if (!query) return "Error: query is required";
+        const cwd = input.workspace.resolve(".");
+        const res = spawnSync(
+          "rg",
+          [
+            "-n",
+            "--no-heading",
+            "--color",
+            "never",
+            "--max-count",
+            String(maxResults),
+            query,
+            dir,
+          ],
+          {
+            cwd,
+            encoding: "utf8",
+          },
+        );
+        const out = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim();
+        if (res.status === 0) return out;
+        if (res.status !== null) return out.length > 0 ? out : "";
 
-        const fullDir = input.workspace.resolve(dir)
-        const results: string[] = []
-        const ignore = new Set(['.git', 'node_modules', 'dist', 'build', 'coverage', '.platypus'])
+        const fullDir = input.workspace.resolve(dir);
+        const results: string[] = [];
+        const ignore = new Set([
+          ".git",
+          "node_modules",
+          "dist",
+          "build",
+          "coverage",
+          ".platypus",
+        ]);
 
         const walk = async (abs: string): Promise<void> => {
-          if (results.length >= maxResults) return
-          let entries: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>
+          if (results.length >= maxResults) return;
+          let entries: Array<{
+            name: string;
+            isDirectory: () => boolean;
+            isFile: () => boolean;
+          }>;
           try {
-            entries = await fs.readdir(abs, { withFileTypes: true })
+            entries = await fs.readdir(abs, { withFileTypes: true });
           } catch {
-            return
+            return;
           }
           for (const e of entries) {
-            if (results.length >= maxResults) return
-            if (ignore.has(e.name)) continue
-            const p = path.join(abs, e.name)
+            if (results.length >= maxResults) return;
+            if (ignore.has(e.name)) continue;
+            const p = path.join(abs, e.name);
             if (e.isDirectory()) {
-              await walk(p)
-              continue
+              await walk(p);
+              continue;
             }
-            if (!e.isFile()) continue
-            let content = ''
+            if (!e.isFile()) continue;
+            let content = "";
             try {
-              content = await fs.readFile(p, 'utf8')
+              content = await fs.readFile(p, "utf8");
             } catch {
-              continue
+              continue;
             }
-            const lines = content.split('\n')
+            const lines = content.split("\n");
             for (let i = 0; i < lines.length; i++) {
-              if (results.length >= maxResults) return
-              if (!lines[i].includes(query)) continue
-              const rel = path.relative(cwd, p)
-              results.push(`${rel}:${i + 1}:${lines[i]}`)
+              if (results.length >= maxResults) return;
+              if (!lines[i].includes(query)) continue;
+              const rel = path.relative(cwd, p);
+              results.push(`${rel}:${i + 1}:${lines[i]}`);
             }
           }
-        }
+        };
 
-        await walk(fullDir)
-        return results.join('\n')
-      }
+        await walk(fullDir);
+        return results.join("\n");
+      },
     },
     patch_file: {
       def: {
-        name: 'patch_file',
-        description: 'Apply a unified diff patch to the workspace using git apply',
+        name: "patch_file",
+        description:
+          "Apply a unified diff patch to the workspace using git apply",
         parameters: {
-          type: 'object',
-          properties: { patch: { type: 'string' } },
-          required: ['patch'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: { patch: { type: "string" } },
+          required: ["patch"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        const patchText = String(args?.patch ?? '')
-        if (!patchText) return 'Error: patch is required'
-        const ok = await input.approval.confirmWrite('patch', patchText)
-        if (!ok) return 'Skipped: user declined patch'
-        const tmp = path.join(os.tmpdir(), `platypus-patch-${Date.now()}-${Math.random().toString(16).slice(2)}.patch`)
+        const patchText = String(args?.patch ?? "");
+        if (!patchText) return "Error: patch is required";
+        const ok = await input.approval.confirmWrite("patch", patchText);
+        if (!ok) return "Skipped: user declined patch";
+        const tmp = path.join(
+          os.tmpdir(),
+          `platypus-patch-${Date.now()}-${Math.random().toString(16).slice(2)}.patch`,
+        );
         try {
-          await fs.writeFile(tmp, patchText, 'utf8')
-          const res = spawnSync('git', ['apply', '--whitespace=nowarn', tmp], { cwd: input.workspace.resolve('.'), encoding: 'utf8' })
-          const out = `${res.stdout ?? ''}${res.stderr ?? ''}`.trim()
-          if (res.status !== 0) return `Exit ${res.status}\n${out}`
-          return out.length > 0 ? out : 'OK'
+          await fs.writeFile(tmp, patchText, "utf8");
+          const res = spawnSync("git", ["apply", "--whitespace=nowarn", tmp], {
+            cwd: input.workspace.resolve("."),
+            encoding: "utf8",
+          });
+          const out = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim();
+          if (res.status !== 0) return `Exit ${res.status}\n${out}`;
+          return out.length > 0 ? out : "OK";
         } finally {
-          await fs.rm(tmp, { force: true }).catch(() => undefined)
+          await fs.rm(tmp, { force: true }).catch(() => undefined);
         }
-      }
+      },
     },
     list_files: {
       def: {
-        name: 'list_files',
-        description: 'List files under a directory (relative to project root)',
+        name: "list_files",
+        description: "List files under a directory (relative to project root)",
         parameters: {
-          type: 'object',
-          properties: { dir: { type: 'string' } },
-          required: ['dir'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: { dir: { type: "string" } },
+          required: ["dir"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        const dir = String(args?.dir ?? '')
-        if (!dir) return 'Error: dir is required'
-        const full = input.workspace.resolve(dir)
-        const entries = await fs.readdir(full, { withFileTypes: true })
-        return entries.map(e => (e.isDirectory() ? `${e.name}/` : e.name)).join('\n')
-      }
+        const dir = String(args?.dir ?? "");
+        if (!dir) return "Error: dir is required";
+        const full = input.workspace.resolve(dir);
+        const entries = await fs.readdir(full, { withFileTypes: true });
+        return entries
+          .map((e) => (e.isDirectory() ? `${e.name}/` : e.name))
+          .join("\n");
+      },
     },
     mcp_list_tools: {
       def: {
-        name: 'mcp_list_tools',
-        description: 'List tools from configured MCP servers',
+        name: "mcp_list_tools",
+        description: "List tools from configured MCP servers",
         parameters: {
-          type: 'object',
-          properties: { server: { type: 'string' } },
+          type: "object",
+          properties: { server: { type: "string" } },
           required: [],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        if (!mcp) return 'MCP not configured'
-        const server = String(args?.server ?? '').trim()
+        if (!mcp) return "MCP not configured";
+        const server = String(args?.server ?? "").trim();
         if (server) {
-          return JSON.stringify(await mcp.listTools(server), null, 2)
+          return JSON.stringify(await mcp.listTools(server), null, 2);
         }
-        return JSON.stringify(await mcp.listAllTools(), null, 2)
-      }
+        return JSON.stringify(await mcp.listAllTools(), null, 2);
+      },
     },
     mcp_call_tool: {
       def: {
-        name: 'mcp_call_tool',
-        description: 'Call a tool on a configured MCP server',
+        name: "mcp_call_tool",
+        description: "Call a tool on a configured MCP server",
         parameters: {
-          type: 'object',
-          properties: { server: { type: 'string' }, tool: { type: 'string' }, arguments: { type: 'object' } },
-          required: ['tool'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: {
+            server: { type: "string" },
+            tool: { type: "string" },
+            arguments: { type: "object" },
+          },
+          required: ["tool"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        if (!mcp) return 'MCP not configured'
-        const tool = String(args?.tool ?? '').trim()
-        if (!tool) return 'Error: tool is required'
-        let server = String(args?.server ?? '').trim()
+        if (!mcp) return "MCP not configured";
+        const tool = String(args?.tool ?? "").trim();
+        if (!tool) return "Error: tool is required";
+        let server = String(args?.server ?? "").trim();
         if (!server) {
-          const names = mcp.listServerNames()
-          if (names.length !== 1) return 'Error: server is required'
-          server = names[0]
+          const names = mcp.listServerNames();
+          if (names.length !== 1) return "Error: server is required";
+          server = names[0];
         }
         const argObj =
-          args?.arguments && typeof args.arguments === 'object' && !Array.isArray(args.arguments) ? args.arguments : {}
-        return mcp.callTool(server, tool, argObj)
-      }
+          args?.arguments &&
+          typeof args.arguments === "object" &&
+          !Array.isArray(args.arguments)
+            ? args.arguments
+            : {};
+        return mcp.callTool(server, tool, argObj);
+      },
     },
     lsp_request: {
       def: {
-        name: 'lsp_request',
-        description: 'Send an LSP JSON-RPC request to the configured language server',
+        name: "lsp_request",
+        description:
+          "Send an LSP JSON-RPC request to the configured language server",
         parameters: {
-          type: 'object',
-          properties: { method: { type: 'string' }, params: { type: 'object' } },
-          required: ['method'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: {
+            method: { type: "string" },
+            params: { type: "object" },
+          },
+          required: ["method"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        if (!lsp) return 'LSP not configured'
-        const method = String(args?.method ?? '').trim()
-        if (!method) return 'Error: method is required'
-        const res = await lsp.request(method, args?.params)
-        if (typeof res === 'string') return res
-        return JSON.stringify(res, null, 2)
-      }
+        if (!lsp) return "LSP not configured";
+        const method = String(args?.method ?? "").trim();
+        if (!method) return "Error: method is required";
+        const res = await lsp.request(method, args?.params);
+        if (typeof res === "string") return res;
+        return JSON.stringify(res, null, 2);
+      },
     },
     run_command: {
       def: {
-        name: 'run_command',
-        description: 'Run a safe shell command in the project root',
+        name: "run_command",
+        description: "Run a safe shell command in the project root",
         parameters: {
-          type: 'object',
-          properties: { command: { type: 'string' } },
-          required: ['command'],
-          additionalProperties: false
-        }
+          type: "object",
+          properties: { command: { type: "string" } },
+          required: ["command"],
+          additionalProperties: false,
+        },
       },
       async run(args: any): Promise<string> {
-        const command = String(args?.command ?? '')
-        if (!command) return 'Error: command is required'
-        if (!isAllowedCommand(command)) return 'Denied: command not allowlisted'
-        const ok = await input.approval.confirmRun(command)
-        if (!ok) return 'Skipped: user declined command'
-        const res = spawnSync(command, { cwd: input.workspace.resolve('.'), shell: true, encoding: 'utf8' })
-        const out = `${res.stdout ?? ''}${res.stderr ?? ''}`.trim()
-        if (res.status !== 0) return `Exit ${res.status}\n${out}`
-        return out.length > 0 ? out : 'OK'
-      }
-    }
-  }
+        const command = String(args?.command ?? "");
+        if (!command) return "Error: command is required";
+        if (!isAllowedCommand(command))
+          return "Denied: command not allowlisted";
+        const ok = await input.approval.confirmRun(command);
+        if (!ok) return "Skipped: user declined command";
+        const res = spawnSync(command, {
+          cwd: input.workspace.resolve("."),
+          shell: true,
+          encoding: "utf8",
+        });
+        const out = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim();
+        if (res.status !== 0) return `Exit ${res.status}\n${out}`;
+        return out.length > 0 ? out : "OK";
+      },
+    },
+  };
 
   return {
     list(): ToolDefinition[] {
-      const all = Object.values(tools).map(t => t.def)
-      if (!allowed) return all
-      return all.filter(d => allowed.has(d.name))
+      const all = Object.values(tools).map((t) => t.def);
+      if (!allowed) return all;
+      return all.filter((d) => allowed.has(d.name));
     },
     async execute(call: ToolCall): Promise<string> {
-      if (allowed && !allowed.has(call.name)) return `Denied: tool disabled (${call.name})`
-      const tool = tools[call.name]
-      if (!tool) return `Error: unknown tool ${call.name}`
+      if (allowed && !allowed.has(call.name))
+        return `Denied: tool disabled (${call.name})`;
+      const tool = tools[call.name];
+      if (!tool) return `Error: unknown tool ${call.name}`;
       try {
-        return await tool.run(call.arguments)
+        return await tool.run(call.arguments);
       } catch (error) {
-        return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        return `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
       }
-    }
-  }
+    },
+  };
 }
 
 function isAllowedCommand(command: string): boolean {
-  const trimmed = command.trim()
-  const allow = [
-    'npm test',
-    'npm run build',
-    'npm run test:coverage',
-    'git status',
-    'git diff',
-    'node --version',
-    'npm --version'
-  ]
-  return allow.some(a => trimmed === a || trimmed.startsWith(`${a} `))
+  const trimmed = command.trim();
+  if (!trimmed) return false;
+
+  // Extract the base command (first word, ignoring env vars like VAR=val)
+  const parts = trimmed.split(/\s+/);
+  let base = "";
+  for (const p of parts) {
+    if (p.includes("=") && !p.startsWith("-")) continue; // skip env assignments
+    base = p.toLowerCase();
+    break;
+  }
+  if (!base) return false;
+
+  // Strip path prefix (e.g. /usr/bin/rm -> rm)
+  const cmd = base.split("/").pop() ?? base;
+
+  // Blocklist: commands that are destructive, dangerous, or irreversible
+  const blocked = new Set([
+    "rm",
+    "rmdir",
+    "mkfs",
+    "dd",
+    "fdisk",
+    "format",
+    "shutdown",
+    "reboot",
+    "poweroff",
+    "halt",
+    "init",
+    "kill",
+    "killall",
+    "pkill",
+    "sudo",
+    "su",
+    "doas",
+    "chmod",
+    "chown",
+    "chgrp",
+    "useradd",
+    "userdel",
+    "usermod",
+    "passwd",
+    "mount",
+    "umount",
+    "systemctl",
+    "service",
+    "launchctl",
+    "crontab",
+    "at",
+    "curl",
+    "wget",
+    "ssh",
+    "scp",
+    "rsync",
+    "nc",
+    "ncat",
+    "netcat",
+    "telnet",
+    "ftp",
+    "sftp",
+    "nmap",
+    "iptables",
+    "ufw",
+    "firewall-cmd",
+    "eval",
+    "exec",
+    "source",
+    ".",
+    "open",
+    "xdg-open",
+    "start",
+    "osascript",
+    "powershell",
+    "cmd",
+    "docker",
+    "podman",
+    "kubectl",
+    "helm",
+  ]);
+
+  // Also check base name before dot (e.g. mkfs.ext4 -> mkfs)
+  const cmdBase = cmd.split(".")[0];
+  if (blocked.has(cmd) || blocked.has(cmdBase)) return false;
+
+  // Block dangerous shell patterns
+  const dangerousPatterns = [
+    />\s*\/dev\/sd/, // writing to block devices
+    />\s*\/dev\/null/, // ok but suspicious with certain commands
+    /\|\s*sh\b/, // piping to shell
+    /\|\s*bash\b/, // piping to bash
+    /\|\s*zsh\b/, // piping to zsh
+    /;\s*rm\s/, // chained rm
+    /&&\s*rm\s/, // chained rm
+    /\$\(/, // command substitution
+    /`[^`]+`/, // backtick command substitution
+    />\s*\/etc\//, // writing to /etc
+    />\s*\/usr\//, // writing to /usr
+    />\s*\/boot\//, // writing to /boot
+    />\s*\/sys\//, // writing to /sys
+    />\s*\/proc\//, // writing to /proc
+  ];
+
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(trimmed)) return false;
+  }
+
+  return true;
 }
 
-async function computeUnifiedDiff(relPath: string, before: string, after: string): Promise<string> {
-  const tmpDir = os.tmpdir()
-  const a = path.join(tmpDir, `platypus-before-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`)
-  const b = path.join(tmpDir, `platypus-after-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`)
+async function computeUnifiedDiff(
+  relPath: string,
+  before: string,
+  after: string,
+): Promise<string> {
+  const tmpDir = os.tmpdir();
+  const a = path.join(
+    tmpDir,
+    `platypus-before-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`,
+  );
+  const b = path.join(
+    tmpDir,
+    `platypus-after-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`,
+  );
 
   try {
-    await fs.writeFile(a, before, 'utf8')
-    await fs.writeFile(b, after, 'utf8')
-    const res = spawnSync('git', ['diff', '--no-index', '--', a, b], { encoding: 'utf8' })
-    const txt = `${res.stdout ?? ''}${res.stderr ?? ''}`.trim()
-    if (!txt) return `diff -- ${relPath}`
+    await fs.writeFile(a, before, "utf8");
+    await fs.writeFile(b, after, "utf8");
+    const res = spawnSync("git", ["diff", "--no-index", "--", a, b], {
+      encoding: "utf8",
+    });
+    const txt = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim();
+    if (!txt) return `diff -- ${relPath}`;
     return txt
       .replaceAll(a, `a/${relPath}`)
       .replaceAll(b, `b/${relPath}`)
-      .replace(/^diff --git.*$/m, `diff --git a/${relPath} b/${relPath}`)
+      .replace(/^diff --git.*$/m, `diff --git a/${relPath} b/${relPath}`);
   } finally {
-    await fs.rm(a, { force: true }).catch(() => undefined)
-    await fs.rm(b, { force: true }).catch(() => undefined)
+    await fs.rm(a, { force: true }).catch(() => undefined);
+    await fs.rm(b, { force: true }).catch(() => undefined);
   }
 }

@@ -1,113 +1,161 @@
-import { Workspace } from '../core/workspace.js'
-import type { ToolApprovalPrompt } from './tooling.js'
-import { createDefaultApprovalPrompt, createToolRegistry } from './tooling.js'
-import type { McpServerConfig } from './mcp.js'
-import type { LspConfig } from './lsp.js'
-import { createLlmClient } from '../llm/index.js'
-import type { LlmClient } from '../llm/client.js'
-import type { LlmMessage } from '../llm/types.js'
+import { Workspace } from "../core/workspace.js";
+import type { ToolApprovalPrompt } from "./tooling.js";
+import { createDefaultApprovalPrompt, createToolRegistry } from "./tooling.js";
+import type { McpServerConfig } from "./mcp.js";
+import type { LspConfig } from "./lsp.js";
+import { createLlmClient } from "../llm/index.js";
+import type { LlmClient } from "../llm/client.js";
+import type { LlmMessage } from "../llm/types.js";
+import { buildSystemPrompt } from "../llm/system-prompt.js";
 
 export type CreateChatSessionInput = {
-  provider: string
-  model?: string
-  root: string
-  autoApprove: boolean
-  mode?: 'plan' | 'build'
-  allowedTools?: string[]
-  mcpServers?: McpServerConfig[]
-  lsp?: LspConfig | null
-}
+  provider: string;
+  model?: string;
+  root: string;
+  autoApprove: boolean;
+  mode?: "plan" | "build";
+  allowedTools?: string[];
+  mcpServers?: McpServerConfig[];
+  lsp?: LspConfig | null;
+};
 
 export type ChatSession = {
-  handleUserMessage(text: string): Promise<string>
-  handleUserMessageStream(text: string, onText: (delta: string) => void): Promise<string>
-  runTool(name: string, args: Record<string, unknown>): Promise<string>
-  configure(next: { provider?: string; model?: string; root?: string; mode?: 'plan' | 'build' }): Promise<void>
-  getConfig(): { provider: string; model?: string; root: string; mode: 'plan' | 'build' }
-}
+  handleUserMessage(text: string): Promise<string>;
+  handleUserMessageStream(
+    text: string,
+    onText: (delta: string) => void,
+  ): Promise<string>;
+  runTool(name: string, args: Record<string, unknown>): Promise<string>;
+  configure(next: {
+    provider?: string;
+    model?: string;
+    root?: string;
+    mode?: "plan" | "build";
+  }): Promise<void>;
+  getConfig(): {
+    provider: string;
+    model?: string;
+    root: string;
+    mode: "plan" | "build";
+  };
+};
 
-export async function createChatSession(input: CreateChatSessionInput): Promise<ChatSession> {
+export async function createChatSession(
+  input: CreateChatSessionInput,
+): Promise<ChatSession> {
   let cfg: {
-    provider: string
-    model?: string
-    root: string
-    autoApprove: boolean
-    mode: 'plan' | 'build'
-    allowedTools?: string[]
-    mcpServers?: McpServerConfig[]
-    lsp?: LspConfig | null
+    provider: string;
+    model?: string;
+    root: string;
+    autoApprove: boolean;
+    mode: "plan" | "build";
+    allowedTools?: string[];
+    mcpServers?: McpServerConfig[];
+    lsp?: LspConfig | null;
   } = {
     provider: input.provider,
     model: input.model,
     root: input.root,
     autoApprove: input.autoApprove,
-    mode: input.mode ?? 'build',
+    mode: input.mode ?? "build",
     allowedTools: input.allowedTools,
     mcpServers: input.mcpServers,
-    lsp: input.lsp
-  }
+    lsp: input.lsp,
+  };
 
-  let llm: LlmClient
-  let workspace: Workspace
-  let tools: ReturnType<typeof createToolRegistry>
-  let approval: ToolApprovalPrompt
+  let llm: LlmClient;
+  let workspace: Workspace;
+  let tools: ReturnType<typeof createToolRegistry>;
+  let approval: ToolApprovalPrompt;
+  let systemPrompt: string;
 
-  const messages: LlmMessage[] = []
+  const messages: LlmMessage[] = [];
 
-  const modeToolAllowlist = (mode: 'plan' | 'build'): string[] | undefined => {
-    if (cfg.allowedTools) return cfg.allowedTools
-    if (mode === 'plan') return ['read_file', 'read_json', 'list_files', 'search_files', 'show_writes', 'run_command']
-    return undefined
-  }
+  const modeToolAllowlist = (mode: "plan" | "build"): string[] | undefined => {
+    if (cfg.allowedTools) return cfg.allowedTools;
+    if (mode === "plan")
+      return [
+        "read_file",
+        "read_json",
+        "list_files",
+        "search_files",
+        "show_writes",
+        "run_command",
+      ];
+    return undefined;
+  };
 
   const rebuild = async () => {
-    llm = await createLlmClient({ provider: cfg.provider, model: cfg.model })
-    workspace = new Workspace(cfg.root)
-    const effectiveAutoApprove = cfg.mode === 'plan' ? false : cfg.autoApprove
-    approval = createDefaultApprovalPrompt({ autoApprove: effectiveAutoApprove })
+    llm = await createLlmClient({ provider: cfg.provider, model: cfg.model });
+    workspace = new Workspace(cfg.root);
+    const effectiveAutoApprove = cfg.mode === "plan" ? false : cfg.autoApprove;
+    approval = createDefaultApprovalPrompt({
+      autoApprove: effectiveAutoApprove,
+    });
     tools = createToolRegistry({
       workspace,
       approval,
-      agentId: 'chat',
+      agentId: "chat",
       allowedToolNames: modeToolAllowlist(cfg.mode),
       mcpServers: cfg.mcpServers,
-      lsp: cfg.lsp
-    })
-  }
+      lsp: cfg.lsp,
+    });
+    systemPrompt = buildSystemPrompt({
+      mode: cfg.mode,
+      toolNames: tools.list().map((t) => t.name),
+    });
+  };
 
-  await rebuild()
+  await rebuild();
 
   return {
     async handleUserMessage(text: string): Promise<string> {
-      messages.push({ role: 'user', content: text })
+      messages.push({ role: "user", content: text });
       const result = await llm.generateWithTools({
         messages,
-        tools
-      })
-      messages.push(...result.newMessages)
-      return result.outputText
+        tools,
+        systemPrompt,
+      });
+      messages.push(...result.newMessages);
+      return result.outputText;
     },
-    async handleUserMessageStream(text: string, onText: (delta: string) => void): Promise<string> {
-      messages.push({ role: 'user', content: text })
+    async handleUserMessageStream(
+      text: string,
+      onText: (delta: string) => void,
+    ): Promise<string> {
+      messages.push({ role: "user", content: text });
       if (llm.streamWithTools) {
         const result = await llm.streamWithTools({
           messages,
           tools,
-          onText
-        })
-        messages.push(...result.newMessages)
-        return result.outputText
+          onText,
+          systemPrompt,
+        });
+        messages.push(...result.newMessages);
+        return result.outputText;
       }
-      const result = await llm.generateWithTools({ messages, tools })
-      messages.push(...result.newMessages)
-      onText(result.outputText)
-      return result.outputText
+      const result = await llm.generateWithTools({
+        messages,
+        tools,
+        systemPrompt,
+      });
+      messages.push(...result.newMessages);
+      onText(result.outputText);
+      return result.outputText;
     },
-    async runTool(name: string, args: Record<string, unknown>): Promise<string> {
-      return tools.execute({ id: 'repl', name, arguments: args })
+    async runTool(
+      name: string,
+      args: Record<string, unknown>,
+    ): Promise<string> {
+      return tools.execute({ id: "repl", name, arguments: args });
     },
-    async configure(next: { provider?: string; model?: string; root?: string; mode?: 'plan' | 'build' }): Promise<void> {
-      const nextRoot = next.root ?? cfg.root
+    async configure(next: {
+      provider?: string;
+      model?: string;
+      root?: string;
+      mode?: "plan" | "build";
+    }): Promise<void> {
+      const nextRoot = next.root ?? cfg.root;
       cfg = {
         provider: next.provider ?? cfg.provider,
         model: next.model === undefined ? cfg.model : next.model,
@@ -116,12 +164,22 @@ export async function createChatSession(input: CreateChatSessionInput): Promise<
         mode: next.mode ?? cfg.mode,
         allowedTools: cfg.allowedTools,
         mcpServers: cfg.mcpServers,
-        lsp: cfg.lsp ? { ...cfg.lsp, root: nextRoot } : cfg.lsp
-      }
-      await rebuild()
+        lsp: cfg.lsp ? { ...cfg.lsp, root: nextRoot } : cfg.lsp,
+      };
+      await rebuild();
     },
-    getConfig(): { provider: string; model?: string; root: string; mode: 'plan' | 'build' } {
-      return { provider: cfg.provider, model: cfg.model, root: cfg.root, mode: cfg.mode }
-    }
-  }
+    getConfig(): {
+      provider: string;
+      model?: string;
+      root: string;
+      mode: "plan" | "build";
+    } {
+      return {
+        provider: cfg.provider,
+        model: cfg.model,
+        root: cfg.root,
+        mode: cfg.mode,
+      };
+    },
+  };
 }

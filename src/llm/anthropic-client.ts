@@ -1,11 +1,17 @@
 import type { LlmClient } from "./client.js";
-import type {
-  GenerateWithToolsInput,
-  GenerateWithToolsResult,
-  LlmMessage,
-  ToolCall,
+import {
+  DEFAULT_MAX_STEPS,
+  type GenerateWithToolsInput,
+  type GenerateWithToolsResult,
+  type LlmMessage,
+  type StreamWithToolsInput,
+  type StreamWithToolsResult,
+  type ToolCall,
 } from "./types.js";
 import { KeyStore } from "../crypto/key-store.js";
+
+const DEFAULT_SYSTEM_PROMPT =
+  "You are a coding assistant. Use tools when needed. Keep responses concise.";
 
 type AnthropicMessage = { role: "user" | "assistant"; content: string | any[] };
 
@@ -47,7 +53,8 @@ export class AnthropicClient implements LlmClient {
   async generateWithTools(
     input: GenerateWithToolsInput,
   ): Promise<GenerateWithToolsResult> {
-    const maxSteps = input.maxSteps ?? 8;
+    const maxSteps = input.maxSteps ?? DEFAULT_MAX_STEPS;
+    const systemPrompt = input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
     const newMessages: LlmMessage[] = [];
 
     let history = input.messages.slice();
@@ -55,6 +62,7 @@ export class AnthropicClient implements LlmClient {
       const response = await this.callMessages({
         messages: this.toAnthropicMessages(history),
         tools: input.tools.list(),
+        systemPrompt,
       });
 
       const assistantText = AnthropicClient.extractText(response.content);
@@ -103,9 +111,72 @@ export class AnthropicClient implements LlmClient {
     return { outputText: "Stopped (max steps reached).", newMessages };
   }
 
+  async streamWithTools(
+    input: StreamWithToolsInput,
+  ): Promise<StreamWithToolsResult> {
+    const maxSteps = input.maxSteps ?? DEFAULT_MAX_STEPS;
+    const systemPrompt = input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+    const newMessages: LlmMessage[] = [];
+
+    let history = input.messages.slice();
+    for (let step = 0; step < maxSteps; step++) {
+      const streamed = await this.callMessagesStream({
+        messages: this.toAnthropicMessages(history),
+        tools: input.tools.list(),
+        onText: input.onText,
+        systemPrompt,
+      });
+
+      if (streamed.toolCalls.length === 0) {
+        if (streamed.assistantText.trim().length > 0) {
+          const m: LlmMessage = {
+            role: "assistant",
+            content: streamed.assistantText,
+          };
+          newMessages.push(m);
+          history = history.concat([m]);
+        }
+        return { outputText: streamed.assistantText, newMessages };
+      }
+
+      const assistantMsg: LlmMessage = {
+        role: "assistant",
+        content: streamed.assistantText,
+        toolCalls: streamed.toolCalls.map((tc) => ({
+          id: tc.id,
+          name: tc.name,
+          arguments: tc.arguments,
+        })),
+      };
+      newMessages.push(assistantMsg);
+      history = history.concat([assistantMsg]);
+
+      for (const tc of streamed.toolCalls) {
+        const parsedArgs = AnthropicClient.safeJsonParse(tc.arguments) ?? {};
+        const call: ToolCall = {
+          id: tc.id,
+          name: tc.name,
+          arguments: parsedArgs,
+        };
+        const out = await input.tools.execute(call);
+        const toolMsg: LlmMessage = {
+          role: "tool",
+          content: out,
+          toolCallId: call.id,
+          name: call.name,
+        };
+        newMessages.push(toolMsg);
+        history = history.concat([toolMsg]);
+      }
+    }
+
+    return { outputText: "Stopped (max steps reached).", newMessages };
+  }
+
   private async callMessages(input: {
     messages: AnthropicMessage[];
     tools: any[];
+    systemPrompt: string;
   }): Promise<any> {
     const res = await fetch(`${this.baseUrl}/messages`, {
       method: "POST",
@@ -117,8 +188,7 @@ export class AnthropicClient implements LlmClient {
       body: JSON.stringify({
         model: this.model,
         max_tokens: 4096,
-        system:
-          "You are a coding assistant. Use tools when needed. Keep responses concise.",
+        system: input.systemPrompt,
         messages: input.messages,
         tools: input.tools.map((t) => ({
           name: t.name,
@@ -135,6 +205,112 @@ export class AnthropicClient implements LlmClient {
       );
     }
     return res.json();
+  }
+
+  private async callMessagesStream(input: {
+    messages: AnthropicMessage[];
+    tools: any[];
+    onText: (delta: string) => void;
+    systemPrompt: string;
+  }): Promise<{
+    assistantText: string;
+    toolCalls: { id: string; name: string; arguments: string }[];
+  }> {
+    const res = await fetch(`${this.baseUrl}/messages`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": this.apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: 4096,
+        stream: true,
+        system: input.systemPrompt,
+        messages: input.messages,
+        tools: input.tools.map((t: any) => ({
+          name: t.name,
+          description: t.description,
+          input_schema: t.parameters,
+        })),
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(
+        `Anthropic request failed: ${res.status} ${res.statusText}${txt ? `: ${txt}` : ""}`,
+      );
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("Anthropic stream missing body");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let assistantText = "";
+    const toolCalls: { id: string; name: string; arguments: string }[] = [];
+    let currentToolIndex = -1;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      while (true) {
+        const sep = buffer.indexOf("\n\n");
+        if (sep < 0) break;
+        const packet = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+
+        let eventType = "";
+        let eventData = "";
+        for (const line of packet.split("\n")) {
+          if (line.startsWith("event:")) eventType = line.slice(6).trim();
+          else if (line.startsWith("data:")) eventData = line.slice(5).trim();
+        }
+
+        if (
+          eventType === "message_stop" ||
+          eventType === "message_delta" ||
+          !eventData
+        )
+          continue;
+
+        const evt = AnthropicClient.safeJsonParse(eventData);
+        if (!evt) continue;
+
+        if (eventType === "content_block_start") {
+          const block = (evt as any).content_block;
+          if (block?.type === "tool_use") {
+            currentToolIndex = toolCalls.length;
+            toolCalls.push({
+              id: String(block.id ?? ""),
+              name: String(block.name ?? ""),
+              arguments: "",
+            });
+          } else if (block?.type === "text") {
+            currentToolIndex = -1;
+          }
+        } else if (eventType === "content_block_delta") {
+          const delta = (evt as any).delta;
+          if (delta?.type === "text_delta" && typeof delta.text === "string") {
+            assistantText += delta.text;
+            input.onText(delta.text);
+          } else if (
+            delta?.type === "input_json_delta" &&
+            typeof delta.partial_json === "string"
+          ) {
+            if (currentToolIndex >= 0 && currentToolIndex < toolCalls.length) {
+              toolCalls[currentToolIndex].arguments += delta.partial_json;
+            }
+          }
+        }
+      }
+    }
+
+    return { assistantText, toolCalls };
   }
 
   private toAnthropicMessages(messages: LlmMessage[]): AnthropicMessage[] {
