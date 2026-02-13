@@ -16,7 +16,8 @@ describe("banner", () => {
   it("renders PLATYPUS ASCII text banner", () => {
     const out = renderPlatypusBanner({ color: false });
     expect(out).toContain("████");
-    expect(out).toContain("v1.1.0");
+    // Version format vX.Y.Z (don't hardcode specific version)
+    expect(out).toMatch(/v\d+\.\d+\.\d+/);
     expect(out).toContain("keys add");
   });
 });
