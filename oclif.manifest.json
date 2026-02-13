@@ -483,135 +483,6 @@
         "resolve.js"
       ]
     },
-    "keys:add": {
-      "aliases": [],
-      "args": {},
-      "description": "Add an encrypted API key for a provider",
-      "flags": {
-        "provider": {
-          "char": "p",
-          "description": "Provider id (e.g. openai)",
-          "name": "provider",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "key": {
-          "char": "k",
-          "description": "API key (omit to prompt securely)",
-          "name": "key",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "validate": {
-          "description": "Validate key with provider API when supported",
-          "name": "validate",
-          "allowNo": false,
-          "type": "boolean"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "keys:add",
-      "pluginAlias": "platypus-cli",
-      "pluginName": "platypus-cli",
-      "pluginType": "core",
-      "strict": true,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "cli",
-        "commands",
-        "keys",
-        "add.js"
-      ]
-    },
-    "keys:list": {
-      "aliases": [],
-      "args": {},
-      "description": "List stored API keys (without revealing secret values)",
-      "flags": {},
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "keys:list",
-      "pluginAlias": "platypus-cli",
-      "pluginName": "platypus-cli",
-      "pluginType": "core",
-      "strict": true,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "cli",
-        "commands",
-        "keys",
-        "list.js"
-      ]
-    },
-    "keys:remove": {
-      "aliases": [],
-      "args": {},
-      "description": "Remove a stored API key for a provider",
-      "flags": {
-        "provider": {
-          "char": "p",
-          "description": "Provider id (e.g. openai)",
-          "name": "provider",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "keys:remove",
-      "pluginAlias": "platypus-cli",
-      "pluginName": "platypus-cli",
-      "pluginType": "core",
-      "strict": true,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "cli",
-        "commands",
-        "keys",
-        "remove.js"
-      ]
-    },
-    "keys:validate": {
-      "aliases": [],
-      "args": {},
-      "description": "Validate a stored key against provider API when supported",
-      "flags": {
-        "provider": {
-          "char": "p",
-          "description": "Provider id (e.g. openai)",
-          "name": "provider",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "keys:validate",
-      "pluginAlias": "platypus-cli",
-      "pluginName": "platypus-cli",
-      "pluginType": "core",
-      "strict": true,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "cli",
-        "commands",
-        "keys",
-        "validate.js"
-      ]
-    },
     "screen:attach": {
       "aliases": [],
       "args": {},
@@ -751,6 +622,135 @@
         "commands",
         "screen",
         "split.js"
+      ]
+    },
+    "keys:add": {
+      "aliases": [],
+      "args": {},
+      "description": "Add an encrypted API key for a provider",
+      "flags": {
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "key": {
+          "char": "k",
+          "description": "API key (omit to prompt securely)",
+          "name": "key",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "validate": {
+          "description": "Validate key with provider API when supported",
+          "name": "validate",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "keys:add",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "keys",
+        "add.js"
+      ]
+    },
+    "keys:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List stored API keys (without revealing secret values)",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "keys:list",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "keys",
+        "list.js"
+      ]
+    },
+    "keys:remove": {
+      "aliases": [],
+      "args": {},
+      "description": "Remove a stored API key for a provider",
+      "flags": {
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "keys:remove",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "keys",
+        "remove.js"
+      ]
+    },
+    "keys:validate": {
+      "aliases": [],
+      "args": {},
+      "description": "Validate a stored key against provider API when supported",
+      "flags": {
+        "provider": {
+          "char": "p",
+          "description": "Provider id (e.g. openai)",
+          "name": "provider",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "keys:validate",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "keys",
+        "validate.js"
       ]
     },
     "workflow:bmad-help": {

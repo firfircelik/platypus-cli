@@ -45,8 +45,11 @@ Thumbs.db
 
 # Ignore BMAD and OpenCode metadata (not needed in repo)
 _bmad/
+_bmad-output/
 .opencode/
 .trae/
+REVIEW.md
+VERIFICATION.md
 
 # Ignore packages/ in production (users install via package managers)
 # packages/

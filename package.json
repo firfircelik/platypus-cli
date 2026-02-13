@@ -100,6 +100,9 @@
       "screen": {
         "description": "Manage screen sessions"
       },
+      "workflow": {
+        "description": "Run BMAD-style development workflows"
+      },
       "run": {
         "description": "Execute tasks"
       }

@@ -15,10 +15,16 @@ export type Repl = {
 };
 
 export function createRepl(prompt: string, handlers: ReplHandlers): Repl {
+  const isTerminal = Boolean(process.stdin.isTTY);
+
+  // Keep stdin open — prevents the process from exiting if stdin
+  // is not a TTY or gets disconnected unexpectedly.
+  process.stdin.resume();
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    terminal: true,
+    terminal: isTerminal,
   });
 
   rl.setPrompt(prompt);
@@ -30,11 +36,17 @@ export function createRepl(prompt: string, handlers: ReplHandlers): Repl {
   const appended: string[] = [];
 
   let closed = false;
+  let resolveStartPromise: (() => void) | null = null;
 
   const close = () => {
     if (closed) return;
     closed = true;
     rl.close();
+    process.stdin.pause();
+    if (resolveStartPromise) {
+      resolveStartPromise();
+      resolveStartPromise = null;
+    }
   };
 
   rl.on("SIGINT", () => {
@@ -43,7 +55,7 @@ export function createRepl(prompt: string, handlers: ReplHandlers): Repl {
 
   const print = (text: string) => {
     if (closed) return;
-    if (rl.terminal) {
+    if (isTerminal) {
       process.stdout.write(`\n${text}\n`);
       rl.prompt(true);
       return;
@@ -51,24 +63,46 @@ export function createRepl(prompt: string, handlers: ReplHandlers): Repl {
     process.stdout.write(`${text}\n`);
   };
 
-  const start = async () => {
-    rl.prompt();
-    for await (const line of rl) {
-      const trimmed = (line ?? "").trim();
-      if (!trimmed) {
-        rl.prompt();
-        continue;
-      }
-      appended.push(trimmed);
-      await handlers.onLine(trimmed);
-      rl.prompt();
-    }
-  };
+  const start = (): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      resolveStartPromise = resolve;
 
-  rl.on("close", () => {
-    writeHistory(historyPath, initialHistory, appended);
-    void handlers.onExit();
-  });
+      rl.on("line", (line) => {
+        if (closed) return;
+        const trimmed = (line ?? "").trim();
+        if (!trimmed) {
+          rl.prompt();
+          return;
+        }
+        appended.push(trimmed);
+        handlers.onLine(trimmed).then(
+          () => {
+            if (!closed) rl.prompt();
+          },
+          (err) => {
+            process.stderr.write(
+              `Error: ${err instanceof Error ? err.message : String(err)}\n`,
+            );
+            if (!closed) rl.prompt();
+          },
+        );
+      });
+
+      rl.on("close", () => {
+        writeHistory(historyPath, initialHistory, appended);
+        void handlers.onExit().finally(() => {
+          closed = true;
+          process.stdin.pause();
+          if (resolveStartPromise) {
+            resolveStartPromise();
+            resolveStartPromise = null;
+          }
+        });
+      });
+
+      rl.prompt();
+    });
+  };
 
   return { start, print, close };
 }

@@ -55,7 +55,7 @@ export default class Chat extends BaseCommand {
   async run(): Promise<void> {
     const { flags } = await this.parse(Chat);
     const nonInteractive = Boolean(
-      flags.json || flags.message || process.stdin.isTTY === false,
+      flags.json || flags.message || !process.stdin.isTTY,
     );
     const root = flags.root ? flags.root : process.cwd();
     const profile = flags.profile ? loadProfile(flags.profile) : null;
@@ -143,7 +143,8 @@ export default class Chat extends BaseCommand {
     }
 
     if (nonInteractive) {
-      const inputText = flags.message ?? (process.stdin.isTTY ? "" : await readStdin());
+      const inputText =
+        flags.message ?? (process.stdin.isTTY ? "" : await readStdin());
       if (!inputText.trim().length) this.error("Input is required");
       if (!session)
         this.error(
@@ -438,6 +439,8 @@ async function readStdin(): Promise<string> {
   return new Promise((resolve, reject) => {
     process.stdin.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
     process.stdin.on("error", reject);
-    process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    process.stdin.on("end", () =>
+      resolve(Buffer.concat(chunks).toString("utf8")),
+    );
   });
 }
