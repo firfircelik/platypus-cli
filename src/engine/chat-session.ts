@@ -1,6 +1,8 @@
 import { Workspace } from '../core/workspace.js'
 import type { ToolApprovalPrompt } from './tooling.js'
 import { createDefaultApprovalPrompt, createToolRegistry } from './tooling.js'
+import type { McpServerConfig } from './mcp.js'
+import type { LspConfig } from './lsp.js'
 import { createLlmClient } from '../llm/index.js'
 import type { LlmClient } from '../llm/client.js'
 import type { LlmMessage } from '../llm/types.js'
@@ -12,6 +14,8 @@ export type CreateChatSessionInput = {
   autoApprove: boolean
   mode?: 'plan' | 'build'
   allowedTools?: string[]
+  mcpServers?: McpServerConfig[]
+  lsp?: LspConfig | null
 }
 
 export type ChatSession = {
@@ -23,13 +27,24 @@ export type ChatSession = {
 }
 
 export async function createChatSession(input: CreateChatSessionInput): Promise<ChatSession> {
-  let cfg: { provider: string; model?: string; root: string; autoApprove: boolean; mode: 'plan' | 'build'; allowedTools?: string[] } = {
+  let cfg: {
+    provider: string
+    model?: string
+    root: string
+    autoApprove: boolean
+    mode: 'plan' | 'build'
+    allowedTools?: string[]
+    mcpServers?: McpServerConfig[]
+    lsp?: LspConfig | null
+  } = {
     provider: input.provider,
     model: input.model,
     root: input.root,
     autoApprove: input.autoApprove,
     mode: input.mode ?? 'build',
-    allowedTools: input.allowedTools
+    allowedTools: input.allowedTools,
+    mcpServers: input.mcpServers,
+    lsp: input.lsp
   }
 
   let llm: LlmClient
@@ -50,7 +65,14 @@ export async function createChatSession(input: CreateChatSessionInput): Promise<
     workspace = new Workspace(cfg.root)
     const effectiveAutoApprove = cfg.mode === 'plan' ? false : cfg.autoApprove
     approval = createDefaultApprovalPrompt({ autoApprove: effectiveAutoApprove })
-    tools = createToolRegistry({ workspace, approval, agentId: 'chat', allowedToolNames: modeToolAllowlist(cfg.mode) })
+    tools = createToolRegistry({
+      workspace,
+      approval,
+      agentId: 'chat',
+      allowedToolNames: modeToolAllowlist(cfg.mode),
+      mcpServers: cfg.mcpServers,
+      lsp: cfg.lsp
+    })
   }
 
   await rebuild()
@@ -85,13 +107,16 @@ export async function createChatSession(input: CreateChatSessionInput): Promise<
       return tools.execute({ id: 'repl', name, arguments: args })
     },
     async configure(next: { provider?: string; model?: string; root?: string; mode?: 'plan' | 'build' }): Promise<void> {
+      const nextRoot = next.root ?? cfg.root
       cfg = {
         provider: next.provider ?? cfg.provider,
         model: next.model === undefined ? cfg.model : next.model,
-        root: next.root ?? cfg.root,
+        root: nextRoot,
         autoApprove: cfg.autoApprove,
         mode: next.mode ?? cfg.mode,
-        allowedTools: cfg.allowedTools
+        allowedTools: cfg.allowedTools,
+        mcpServers: cfg.mcpServers,
+        lsp: cfg.lsp ? { ...cfg.lsp, root: nextRoot } : cfg.lsp
       }
       await rebuild()
     },

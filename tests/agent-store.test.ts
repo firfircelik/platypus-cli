@@ -42,4 +42,19 @@ describe('AgentStore', () => {
     process.env.HOME = prevHome
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
+
+  it('get returns null for non-existent agent', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-state-'))
+    const prevHome = process.env.HOME
+    process.env.HOME = tmpDir
+    resetStateDb()
+
+    const store = new AgentStore()
+    const agent = store.get('non-existent-agent-id')
+    expect(agent).toBeNull()
+
+    resetStateDb()
+    process.env.HOME = prevHome
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
 })

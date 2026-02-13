@@ -44,6 +44,20 @@
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"
+        },
+        "message": {
+          "description": "Single prompt for non-interactive mode",
+          "name": "message",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "json": {
+          "description": "Output JSON and disable interactive mode",
+          "name": "json",
+          "allowNo": false,
+          "type": "boolean"
         }
       },
       "hasDynamicHelp": false,
@@ -598,6 +612,147 @@
         "validate.js"
       ]
     },
+    "screen:attach": {
+      "aliases": [],
+      "args": {},
+      "description": "Attach to a tmux session by name or agent id",
+      "flags": {
+        "session": {
+          "char": "s",
+          "description": "tmux session name",
+          "name": "session",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "agent": {
+          "char": "a",
+          "description": "agent id",
+          "name": "agent",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "screen:attach",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "screen",
+        "attach.js"
+      ]
+    },
+    "screen:layout": {
+      "aliases": [],
+      "args": {},
+      "description": "Change layout for a tmux session",
+      "flags": {
+        "session": {
+          "char": "s",
+          "description": "tmux session name",
+          "name": "session",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "layout": {
+          "char": "l",
+          "description": "Layout name (dev, review, monitor, collaborative)",
+          "name": "layout",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "screen:layout",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "screen",
+        "layout.js"
+      ]
+    },
+    "screen:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List tmux sessions",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "screen:list",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "screen",
+        "list.js"
+      ]
+    },
+    "screen:split": {
+      "aliases": [],
+      "args": {},
+      "description": "Split a tmux session into panes",
+      "flags": {
+        "session": {
+          "char": "s",
+          "description": "tmux session name",
+          "name": "session",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "direction": {
+          "char": "d",
+          "description": "vertical|horizontal",
+          "name": "direction",
+          "default": "vertical",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "screen:split",
+      "pluginAlias": "platypus-cli",
+      "pluginName": "platypus-cli",
+      "pluginType": "core",
+      "strict": true,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "cli",
+        "commands",
+        "screen",
+        "split.js"
+      ]
+    },
     "workflow:bmad-help": {
       "aliases": [],
       "args": {},
@@ -870,148 +1025,7 @@
         "workflow",
         "run.js"
       ]
-    },
-    "screen:attach": {
-      "aliases": [],
-      "args": {},
-      "description": "Attach to a tmux session by name or agent id",
-      "flags": {
-        "session": {
-          "char": "s",
-          "description": "tmux session name",
-          "name": "session",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "agent": {
-          "char": "a",
-          "description": "agent id",
-          "name": "agent",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "screen:attach",
-      "pluginAlias": "platypus-cli",
-      "pluginName": "platypus-cli",
-      "pluginType": "core",
-      "strict": true,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "cli",
-        "commands",
-        "screen",
-        "attach.js"
-      ]
-    },
-    "screen:layout": {
-      "aliases": [],
-      "args": {},
-      "description": "Change layout for a tmux session",
-      "flags": {
-        "session": {
-          "char": "s",
-          "description": "tmux session name",
-          "name": "session",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "layout": {
-          "char": "l",
-          "description": "Layout name (dev, review, monitor, collaborative)",
-          "name": "layout",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "screen:layout",
-      "pluginAlias": "platypus-cli",
-      "pluginName": "platypus-cli",
-      "pluginType": "core",
-      "strict": true,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "cli",
-        "commands",
-        "screen",
-        "layout.js"
-      ]
-    },
-    "screen:list": {
-      "aliases": [],
-      "args": {},
-      "description": "List tmux sessions",
-      "flags": {},
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "screen:list",
-      "pluginAlias": "platypus-cli",
-      "pluginName": "platypus-cli",
-      "pluginType": "core",
-      "strict": true,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "cli",
-        "commands",
-        "screen",
-        "list.js"
-      ]
-    },
-    "screen:split": {
-      "aliases": [],
-      "args": {},
-      "description": "Split a tmux session into panes",
-      "flags": {
-        "session": {
-          "char": "s",
-          "description": "tmux session name",
-          "name": "session",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "direction": {
-          "char": "d",
-          "description": "vertical|horizontal",
-          "name": "direction",
-          "default": "vertical",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "screen:split",
-      "pluginAlias": "platypus-cli",
-      "pluginName": "platypus-cli",
-      "pluginType": "core",
-      "strict": true,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "cli",
-        "commands",
-        "screen",
-        "split.js"
-      ]
     }
   },
-  "version": "1.0.1"
+  "version": "1.1.0"
 }

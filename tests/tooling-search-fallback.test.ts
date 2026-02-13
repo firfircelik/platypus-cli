@@ -58,4 +58,25 @@ describe('tooling search fallback', () => {
     }
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
+
+  it('respects ignore list and maxResults', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-search-fb-3-'))
+    fs.mkdirSync(path.join(tmpDir, '.git'), { recursive: true })
+    fs.writeFileSync(path.join(tmpDir, '.git', 'ignored.txt'), 'hit\n', 'utf8')
+    fs.mkdirSync(path.join(tmpDir, 'sub'), { recursive: true })
+    fs.writeFileSync(path.join(tmpDir, 'a.txt'), 'hit\nhit\n', 'utf8')
+    fs.writeFileSync(path.join(tmpDir, 'sub', 'b.txt'), 'hit\n', 'utf8')
+
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    const out = await tools.execute({ id: '3', name: 'search_files', arguments: { query: 'hit', dir: '.', maxResults: 1 } })
+    const lines = out.split('\n').filter(Boolean)
+    expect(lines.length).toBe(1)
+    expect(lines[0]).toContain('a.txt:1:hit')
+    expect(out).not.toContain('.git')
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
 })

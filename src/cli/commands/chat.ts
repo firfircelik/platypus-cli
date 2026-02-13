@@ -13,6 +13,8 @@ import {
   createDefaultApprovalPrompt,
   createToolRegistry,
 } from "../../engine/tooling.js";
+import { loadMcpServersFromEnv } from "../../engine/mcp.js";
+import { loadLspConfigFromEnv } from "../../engine/lsp.js";
 
 export default class Chat extends BaseCommand {
   static description = "Interactive chat mode (Claude Code-style)";
@@ -40,15 +42,28 @@ export default class Chat extends BaseCommand {
       required: false,
       description: "Profile name (e.g. plan, build)",
     }),
+    message: Flags.string({
+      required: false,
+      description: "Single prompt for non-interactive mode",
+    }),
+    json: Flags.boolean({
+      default: false,
+      description: "Output JSON and disable interactive mode",
+    }),
   };
 
   async run(): Promise<void> {
     const { flags } = await this.parse(Chat);
+    const nonInteractive = Boolean(
+      flags.json || flags.message || process.stdin.isTTY === false,
+    );
     const root = flags.root ? flags.root : process.cwd();
     const profile = flags.profile ? loadProfile(flags.profile) : null;
     const defaultProvider = (profile?.provider ?? flags.provider)
       .trim()
       .toLowerCase();
+    const mcpServers = loadMcpServersFromEnv();
+    const lsp = loadLspConfigFromEnv(root);
 
     // Check for existing API keys
     const keyStore = new KeyStore();
@@ -57,10 +72,11 @@ export default class Chat extends BaseCommand {
     const hasKeys = keys.length > 0;
     const validProviders = keys.filter((k) => k.valid).map((k) => k.provider);
 
-    if (shouldShowPlatypusBanner()) this.log(renderPlatypusBanner());
+    if (!nonInteractive && shouldShowPlatypusBanner())
+      this.log(renderPlatypusBanner());
 
     // Show welcome/setup message if no keys configured
-    if (!hasKeys) {
+    if (!nonInteractive && !hasKeys) {
       this.log("👋 Welcome to Platypus CLI!");
       this.log("");
       this.log("To start chatting with AI, add an API key:");
@@ -75,13 +91,15 @@ export default class Chat extends BaseCommand {
       this.log("  /search <query>  - Search files");
       this.log("  /run <command>   - Run a shell command");
       this.log("");
-    } else if (validProviders.length > 0) {
+    } else if (!nonInteractive && validProviders.length > 0) {
       this.log(`✓ Configured providers: ${validProviders.join(", ")}`);
       this.log("");
     }
 
-    this.log("Type /help for commands. Type /exit to quit.");
-    this.log("");
+    if (!nonInteractive) {
+      this.log("Type /help for commands. Type /exit to quit.");
+      this.log("");
+    }
 
     // Create workspace and tools for local operations (work without AI)
     const workspace = new Workspace(root);
@@ -116,10 +134,38 @@ export default class Chat extends BaseCommand {
           autoApprove: profile?.autoApprove ?? flags.autoApprove,
           mode: profile?.mode ?? "build",
           allowedTools: profile?.allowedTools,
+          mcpServers,
+          lsp,
         });
       } catch (e) {
         // Silent fail - we'll show setup message when user tries to chat
       }
+    }
+
+    if (nonInteractive) {
+      const inputText = flags.message ?? (process.stdin.isTTY ? "" : await readStdin());
+      if (!inputText.trim().length) this.error("Input is required");
+      if (!session)
+        this.error(
+          "No AI provider configured. Add a key: platypus keys add -p <provider>",
+        );
+      const output = await session.handleUserMessage(inputText);
+      if (flags.json) {
+        const cfg = session.getConfig();
+        this.log(
+          JSON.stringify({
+            input: inputText,
+            output,
+            provider: cfg.provider,
+            model: cfg.model ?? null,
+            mode: cfg.mode,
+            root: cfg.root,
+          }),
+        );
+      } else {
+        this.log(output);
+      }
+      return;
     }
 
     const repl = createRepl("platypus> ", {
@@ -385,4 +431,13 @@ export default class Chat extends BaseCommand {
 
     await repl.start();
   }
+}
+
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    process.stdin.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+    process.stdin.on("error", reject);
+    process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+  });
 }

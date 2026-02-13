@@ -66,4 +66,120 @@ describe('tooling', () => {
 
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
+
+  it('read_json parses and pretty-prints valid JSON', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-tools-json-'))
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    const validJson = { name: 'test', count: 42, nested: { key: 'value' } }
+    fs.writeFileSync(path.join(tmpDir, 'valid.json'), JSON.stringify(validJson), 'utf8')
+
+    const result = await tools.execute({ id: '11', name: 'read_json', arguments: { path: 'valid.json' } })
+    const parsed = JSON.parse(result)
+    expect(parsed).toEqual(validJson)
+    expect(result).toMatch(/\{\s+"name":\s+"test"/)
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('read_json returns error for missing path', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-tools-read-'))
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    const result = await tools.execute({ id: '12', name: 'read_json', arguments: {} })
+    expect(result).toBe('Error: path is required')
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('write_json creates pretty-printed JSON files', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-tools-write-'))
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    const value = { project: 'platypus', version: 1.0, features: ['test', 'json'] }
+    const result = await tools.execute({ id: '13', name: 'write_json', arguments: { path: 'output.json', value } })
+    expect(result).toMatch(/output.json/)
+
+    const content = fs.readFileSync(path.join(tmpDir, 'output.json'), 'utf8')
+    const parsed = JSON.parse(content)
+    expect(parsed).toEqual(value)
+    expect(content).toMatch(/\{\s+"project":\s+"platypus"/)
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('write_json returns error for missing path', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-tools-write2-'))
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    const result = await tools.execute({ id: '14', name: 'write_json', arguments: { value: {} } })
+    expect(result).toBe('Error: path is required')
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('search_files finds text patterns in directory', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-tools-search-'))
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    fs.writeFileSync(path.join(tmpDir, 'file1.ts'), 'export function test() { return true }', 'utf8')
+    fs.writeFileSync(path.join(tmpDir, 'file2.ts'), 'const testValue = 42', 'utf8')
+
+    const result = await tools.execute({ id: '15', name: 'search_files', arguments: { query: 'test', dir: '.' } })
+    expect(result).toContain('file1.ts:1:')
+    expect(result).toContain('file2.ts:1:')
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('search_files respects maxResults parameter', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-tools-max-'))
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    for (let i = 0; i < 10; i++) {
+      fs.writeFileSync(path.join(tmpDir, `file${i}.txt`), `test line ${i}`, 'utf8')
+    }
+
+    const result = await tools.execute({ id: '16', name: 'search_files', arguments: { query: 'test', dir: '.', maxResults: 3 } })
+    const lines = result.split('\n').filter(l => l.trim().length > 0)
+    expect(lines.length).toBeLessThanOrEqual(3)
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('search_files returns error for missing query', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-tools-noq-'))
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    const result = await tools.execute({ id: '17', name: 'search_files', arguments: { dir: '.' } })
+    expect(result).toBe('Error: query is required')
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('search_files handles empty directory gracefully', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'platypus-tools-empty-'))
+    const ws = new Workspace(tmpDir)
+    const approval = createDefaultApprovalPrompt({ autoApprove: true })
+    const tools = createToolRegistry({ workspace: ws, approval, agentId: 't' })
+
+    const result = await tools.execute({ id: '18', name: 'search_files', arguments: { query: 'nonexistent', dir: '.' } })
+    expect(result).toBe('')
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
 })

@@ -16,6 +16,8 @@ describe("banner", () => {
   it("renders wide and compact variants", () => {
     const out = renderPlatypusBanner({ color: false });
     expect(out).toContain("Platypus CLI");
-    expect(out).toContain("▄▄▄▄▄");
+    expect(out).toContain("___,,___");
+    expect(out).toContain("(o)(o)");
+    expect(out).toContain("v1.1.0");
   });
 });

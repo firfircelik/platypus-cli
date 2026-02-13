@@ -2,6 +2,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { AgentTaskStore } from '../state/agent-task-store.js'
 import { createChatSession } from '../engine/chat-session.js'
+import { loadMcpServersFromEnv } from '../engine/mcp.js'
+import { loadLspConfigFromEnv } from '../engine/lsp.js'
 
 export type AgentRuntimeArgs = {
   agentId: string
@@ -43,7 +45,9 @@ export async function runAgentRuntime(argv: string[] = process.argv): Promise<vo
     model: a.model,
     root: a.root,
     autoApprove: a.autoApprove,
-    mode: a.mode
+    mode: a.mode,
+    mcpServers: loadMcpServersFromEnv(),
+    lsp: loadLspConfigFromEnv(a.root)
   })
 
   const store = new AgentTaskStore()

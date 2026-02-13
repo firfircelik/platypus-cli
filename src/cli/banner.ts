@@ -5,12 +5,44 @@
  * with optional colors and formatting.
  */
 
+import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+
+function getVersion(): string {
+  try {
+    // Try import.meta based resolution first (ESM)
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const pkgPath = resolve(__dirname, "..", "..", "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+    return pkg.version ?? "0.0.0";
+  } catch {
+    try {
+      // Fallback: use createRequire
+      const require = createRequire(import.meta.url);
+      const pkg = require("../../package.json");
+      return pkg.version ?? "0.0.0";
+    } catch {
+      return "0.0.0";
+    }
+  }
+}
+
 export const PLATYPUS_ASCII_ART = `
-   ▄▄▄▄▄▄
-  ██▀██▀██▄
- ████▀█▀
- ██▀  ██▀
- ▀  ▀
+        ___,,___
+     ,-='    '=-.
+   ,'   _  _    '.
+  /    (o)(o)     \\
+ ;     _       _   ;
+ |    (_)--.--(_)  |
+ ;     '.    .'    ;
+  \\      '--'     /
+   '.           .'
+     '-._____.-'
+   ~~/         \\~~
+  ~~(           )~~
+    ~~\\_______/~~
 `;
 
 export function shouldShowPlatypusBanner(): boolean {
@@ -35,14 +67,30 @@ export function renderPlatypusBanner(input?: { color?: boolean }): string {
   // Render the platypus ASCII art in yellow/bold
   const platypus = yellow(
     bold(
-      ["   ▄▄▄▄▄▄", "  ██▀██▀██▄", " ████▀█▀", " ██▀  ██▀", " ▀  ▀"].join("\n"),
+      [
+        "        ___,,___",
+        "     ,-='    '=-.",
+        "   ,'   _  _    '.",
+        "  /    (o)(o)     \\",
+        " ;     _       _   ;",
+        " |    (_)--.--(_)  |",
+        " ;     '.    .'    ;",
+        "  \\      '--'     /",
+        "   '.           .'",
+        "     '-._____.-'",
+        "   ~~/         \\~~",
+        "  ~~(           )~~",
+        "    ~~\\_______/~~",
+      ].join("\n"),
     ),
   );
 
+  const version = getVersion();
+
   // Title below the art
   const title = cyan("Platypus CLI");
-  const version = dim("v1.0.0");
+  const ver = dim(`v${version}`);
   const hint = dim("Tip: Add API keys with `platypus keys add <provider>`");
 
-  return [platypus, "", title, version, hint, ""].join("\n");
+  return [platypus, "", title, ver, hint, ""].join("\n");
 }

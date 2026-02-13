@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process'
 import inquirer from 'inquirer'
 import type { Workspace } from '../core/workspace.js'
 import type { ToolCall, ToolDefinition, ToolRegistry } from '../llm/types.js'
+import { McpManager, type McpServerConfig } from './mcp.js'
+import { LspManager, type LspConfig } from './lsp.js'
 
 export type ToolApprovalPrompt = {
   autoApprove: boolean
@@ -49,9 +51,13 @@ export function createToolRegistry(input: {
   approval: ToolApprovalPrompt
   agentId: string
   allowedToolNames?: string[]
+  mcpServers?: McpServerConfig[]
+  lsp?: LspConfig | null
 }): ToolRegistry {
   const pendingWrites: { path: string; content: string; diff: string }[] = []
   const allowed = input.allowedToolNames ? new Set(input.allowedToolNames) : null
+  const mcp = input.mcpServers && input.mcpServers.length > 0 ? new McpManager(input.mcpServers) : null
+  const lsp = input.lsp ? new LspManager(input.lsp) : null
 
   const tools: Record<string, { def: ToolDefinition; run: (args: any) => Promise<string> }> = {
     read_file: {
@@ -332,6 +338,72 @@ export function createToolRegistry(input: {
         const full = input.workspace.resolve(dir)
         const entries = await fs.readdir(full, { withFileTypes: true })
         return entries.map(e => (e.isDirectory() ? `${e.name}/` : e.name)).join('\n')
+      }
+    },
+    mcp_list_tools: {
+      def: {
+        name: 'mcp_list_tools',
+        description: 'List tools from configured MCP servers',
+        parameters: {
+          type: 'object',
+          properties: { server: { type: 'string' } },
+          required: [],
+          additionalProperties: false
+        }
+      },
+      async run(args: any): Promise<string> {
+        if (!mcp) return 'MCP not configured'
+        const server = String(args?.server ?? '').trim()
+        if (server) {
+          return JSON.stringify(await mcp.listTools(server), null, 2)
+        }
+        return JSON.stringify(await mcp.listAllTools(), null, 2)
+      }
+    },
+    mcp_call_tool: {
+      def: {
+        name: 'mcp_call_tool',
+        description: 'Call a tool on a configured MCP server',
+        parameters: {
+          type: 'object',
+          properties: { server: { type: 'string' }, tool: { type: 'string' }, arguments: { type: 'object' } },
+          required: ['tool'],
+          additionalProperties: false
+        }
+      },
+      async run(args: any): Promise<string> {
+        if (!mcp) return 'MCP not configured'
+        const tool = String(args?.tool ?? '').trim()
+        if (!tool) return 'Error: tool is required'
+        let server = String(args?.server ?? '').trim()
+        if (!server) {
+          const names = mcp.listServerNames()
+          if (names.length !== 1) return 'Error: server is required'
+          server = names[0]
+        }
+        const argObj =
+          args?.arguments && typeof args.arguments === 'object' && !Array.isArray(args.arguments) ? args.arguments : {}
+        return mcp.callTool(server, tool, argObj)
+      }
+    },
+    lsp_request: {
+      def: {
+        name: 'lsp_request',
+        description: 'Send an LSP JSON-RPC request to the configured language server',
+        parameters: {
+          type: 'object',
+          properties: { method: { type: 'string' }, params: { type: 'object' } },
+          required: ['method'],
+          additionalProperties: false
+        }
+      },
+      async run(args: any): Promise<string> {
+        if (!lsp) return 'LSP not configured'
+        const method = String(args?.method ?? '').trim()
+        if (!method) return 'Error: method is required'
+        const res = await lsp.request(method, args?.params)
+        if (typeof res === 'string') return res
+        return JSON.stringify(res, null, 2)
       }
     },
     run_command: {

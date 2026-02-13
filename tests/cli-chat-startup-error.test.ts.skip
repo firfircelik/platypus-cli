@@ -1,0 +1,53 @@
+import { describe, expect, it, vi } from "vitest";
+
+// Mock REPL first
+const replOut: string[] = [];
+vi.mock("../src/engine/repl.js", () => ({
+  createRepl: (_prompt: string, handlers: any) => ({
+    start: async () => {
+      await handlers.onLine("/exit");
+      await handlers.onExit();
+    },
+    print: (s: string) => replOut.push(s),
+    close: () => undefined,
+  }),
+}));
+
+vi.mock("../src/engine/chat-session.js", () => ({
+  createChatSession: vi.fn(async () => {
+    throw new Error("missing key");
+  }),
+}));
+
+vi.mock("../src/crypto/key-store.js", () => ({
+  KeyStore: class MockKeyStore {
+    async initialize() {}
+    async listKeys() {
+      return [];
+    }
+  },
+}));
+
+import Chat from "../src/cli/commands/chat.js";
+
+describe("cli chat startup error", () => {
+  it("shows welcome message when no keys configured", async () => {
+    replOut.splice(0, replOut.length);
+    const cmd = new Chat([], {} as any);
+    (cmd as any).parse = vi.fn(async () => ({
+      flags: {
+        provider: "openai",
+        model: undefined,
+        autoApprove: false,
+        root: undefined,
+        profile: undefined,
+      },
+    }));
+    const logMock = vi.fn();
+    (cmd as any).log = logMock;
+    await cmd.run();
+    const out = logMock.mock.calls.map((c: any[]) => c.join(" ")).join("\n");
+    expect(out).toContain("Welcome to Platypus");
+    expect(out).toContain("add an API key");
+  }, 10000);
+});

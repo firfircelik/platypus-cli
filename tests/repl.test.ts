@@ -54,7 +54,7 @@ describe('repl', () => {
   it('runs handler for lines and prints', async () => {
     const seen: string[] = []
     replState.terminal = true
-    replState.lines = ['hi']
+    replState.lines = ['', 'hi']
     fs.writeFileSync(path.join(process.env.PLATYPUS_HOME!, 'history'), 'a\nb\n', 'utf8')
     const repl = createRepl('p> ', {
       onLine: async line => {
@@ -65,6 +65,7 @@ describe('repl', () => {
     repl.print('x')
     await repl.start()
     expect(seen).toContain('hi')
+    expect(seen).not.toContain('')
     expect(Array.isArray(lastRl.history)).toBe(true)
     expect(lastRl.history.join('\n')).toContain('b')
   })
@@ -82,5 +83,26 @@ describe('repl', () => {
     repl.print('y')
     ;(events.SIGINT ?? []).forEach(fn => fn())
     expect(exited).toBeGreaterThan(0)
+  })
+
+  it('handles history read and write failures', async () => {
+    replState.terminal = true
+    replState.lines = []
+    const existsMock = vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+    const readMock = vi.spyOn(fs, 'readFileSync').mockImplementation(() => {
+      throw new Error('read fail')
+    })
+    const mkdirMock = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => {
+      throw new Error('mkdir fail')
+    })
+    const repl = createRepl('p> ', {
+      onLine: async () => undefined,
+      onExit: async () => undefined
+    })
+    lastRl.close()
+    existsMock.mockRestore()
+    readMock.mockRestore()
+    mkdirMock.mockRestore()
+    repl.close()
   })
 })
