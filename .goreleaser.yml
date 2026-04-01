@@ -7,7 +7,7 @@ before:
     - go mod tidy
 
 builds:
-  - main: ./cmd/platypus
+  - main: ./cmd/platypus/main.go
     binary: platypus
     env:
       - CGO_ENABLED=0
