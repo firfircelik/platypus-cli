@@ -8,9 +8,16 @@ dist/
 build/
 *.tgz
 
+# Go binary
+platypus
+
+# GoReleaser
+dist/
+
 # Test coverage
 coverage/
 .nyc_output/
+coverage.out
 
 # Logs
 *.log

@@ -1,0 +1,27 @@
+[providers.default]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+# api_key is read from env: ANTHROPIC_API_KEY or OPENAI_API_KEY
+
+[providers.fallback]
+provider = "ollama"
+model = "qwen2.5-coder:32b"
+url = "http://localhost:11434"
+
+[security]
+mode = "permissive"  # strict | permissive | none
+
+[bash]
+allow_all = true
+
+[session]
+cleanup_days = 30
+persistence = true
+
+[ui]
+verbose = false
+markdown = true
+color = true
+
+[i18n]
+language = "en"  # en | tr | de | it | es

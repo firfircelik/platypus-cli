@@ -1,0 +1,77 @@
+{
+  "name": "platypus",
+  "displayName": "Platypus",
+  "description": "AI coding agent — iş yap, konuşma",
+  "version": "0.1.0",
+  "publisher": "platypus",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onCommand:platypus.ask",
+    "onCommand:platypus.edit",
+    "onCommand:platypus.explain"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "platypus.ask",
+        "title": "Platypus: Ask"
+      },
+      {
+        "command": "platypus.edit",
+        "title": "Platypus: Edit"
+      },
+      {
+        "command": "platypus.explain",
+        "title": "Platypus: Explain"
+      }
+    ],
+    "configuration": {
+      "title": "Platypus",
+      "properties": {
+        "platypus.provider": {
+          "type": "string",
+          "default": "anthropic",
+          "enum": [
+            "anthropic",
+            "openai",
+            "ollama"
+          ],
+          "description": "AI provider"
+        },
+        "platypus.model": {
+          "type": "string",
+          "default": "claude-sonnet-4-6",
+          "description": "Model name"
+        },
+        "platypus.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key"
+        },
+        "platypus.verbose": {
+          "type": "boolean",
+          "default": false,
+          "description": "Verbose mode"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
