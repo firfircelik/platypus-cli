@@ -64,7 +64,7 @@ brews:
       system "#{bin}/platypus", "--version"
 
 scoops:
-  - bucket:
+  - repository:
       owner: firfircelik
       name: scoop-bucket
       token: "{{ .Env.GITHUB_TOKEN }}"
