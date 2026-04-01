@@ -9,7 +9,7 @@ build/
 *.tgz
 
 # Go binary
-platypus
+/platypus
 
 # GoReleaser
 dist/

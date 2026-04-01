@@ -8,7 +8,7 @@
 ```
 
 [![CI](https://github.com/firfircelik/platypus-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/firfircelik/platypus-cli/actions/workflows/ci.yml)
-[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go)](https://go.dev/dl/)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/firfircelik/platypus-cli?logo=github)](https://github.com/firfircelik/platypus-cli/releases)
 
